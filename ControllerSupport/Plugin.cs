@@ -31,9 +31,9 @@ public class Plugin : BaseUnityPlugin
 
         Enabled = Config.Bind("Gamepad", "Enabled", true,
             "Master toggle for gamepad support. When off, the controller does nothing and keyboard/mouse are unaffected.");
-        LookSpeedX = Config.Bind("Gamepad", "LookSpeedX", 4f,
+        LookSpeedX = Config.Bind("Gamepad", "LookSpeedX", 1.5f,
             new ConfigDescription("Right-stick horizontal camera speed.", new AcceptableValueRange<float>(0.1f, 20f)));
-        LookSpeedY = Config.Bind("Gamepad", "LookSpeedY", 4f,
+        LookSpeedY = Config.Bind("Gamepad", "LookSpeedY", 1.5f,
             new ConfigDescription("Right-stick vertical camera speed.", new AcceptableValueRange<float>(0.1f, 20f)));
         InvertY = Config.Bind("Gamepad", "InvertY", false, "Invert right-stick vertical look.");
         StickDeadzone = Config.Bind("Gamepad", "StickDeadzone", 0.15f,
