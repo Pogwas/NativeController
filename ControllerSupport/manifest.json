@@ -1,0 +1,7 @@
+{
+  "name": "ControllerSupport",
+  "version_number": "0.1.0",
+  "website_url": "",
+  "description": "Native gamepad/controller support for R.E.P.O. (Phase 1: core gameplay).",
+  "dependencies": []
+}

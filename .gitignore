@@ -1,0 +1,8 @@
+bin/
+obj/
+decompiled/
+docs/
+*.cfg
+*.zip
+.vs/
+.idea/
