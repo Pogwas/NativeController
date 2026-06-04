@@ -39,6 +39,8 @@ public class Plugin : BaseUnityPlugin
         StickDeadzone = Config.Bind("Gamepad", "StickDeadzone", 0.15f,
             new ConfigDescription("Right-stick deadzone (ignore small movements).", new AcceptableValueRange<float>(0f, 0.6f)));
 
+        ControllerDetect.Init();
+
         _harmony = new Harmony(PluginGuid);
         _harmony.PatchAll();
 
