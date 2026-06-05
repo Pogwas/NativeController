@@ -2,6 +2,8 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace ControllerSupport;
 
@@ -20,8 +22,10 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> LookSpeedY;
     internal static ConfigEntry<bool> InvertY;
     internal static ConfigEntry<float> StickDeadzone;
+    internal static ConfigEntry<float> MenuCursorSpeed;
 
     private Harmony _harmony;
+    private static GameObject _menuNavGO;
 
     private void Awake()
     {
@@ -31,19 +35,34 @@ public class Plugin : BaseUnityPlugin
 
         Enabled = Config.Bind("Gamepad", "Enabled", true,
             "Master toggle for gamepad support. When off, the controller does nothing and keyboard/mouse are unaffected.");
-        LookSpeedX = Config.Bind("Gamepad", "LookSpeedX", 1.5f,
+        LookSpeedX = Config.Bind("Gamepad", "LookSpeedX", 1.0f,
             new ConfigDescription("Right-stick horizontal camera speed.", new AcceptableValueRange<float>(0.1f, 20f)));
-        LookSpeedY = Config.Bind("Gamepad", "LookSpeedY", 1.5f,
+        LookSpeedY = Config.Bind("Gamepad", "LookSpeedY", 1.0f,
             new ConfigDescription("Right-stick vertical camera speed.", new AcceptableValueRange<float>(0.1f, 20f)));
         InvertY = Config.Bind("Gamepad", "InvertY", false, "Invert right-stick vertical look.");
         StickDeadzone = Config.Bind("Gamepad", "StickDeadzone", 0.15f,
             new ConfigDescription("Right-stick deadzone (ignore small movements).", new AcceptableValueRange<float>(0f, 0.6f)));
+        MenuCursorSpeed = Config.Bind("Gamepad", "MenuCursorSpeed", 12f,
+            new ConfigDescription("Left-stick cursor speed when navigating menus.", new AcceptableValueRange<float>(1f, 50f)));
 
         ControllerDetect.Init();
 
         _harmony = new Harmony(PluginGuid);
         _harmony.PatchAll();
 
+        SceneManager.sceneLoaded += OnSceneLoaded;
+
         Log.LogInfo($"{PluginName} loaded.");
+    }
+
+    // REPO destroys DontDestroyOnLoad objects at boot, so (re)create the menu navigator each scene load.
+    private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (_menuNavGO == null)
+        {
+            _menuNavGO = new GameObject("ControllerSupport.MenuNav", typeof(MenuNavigator));
+            DontDestroyOnLoad(_menuNavGO);
+            Log.LogDebug("[Gamepad] MenuNavigator (re)created.");
+        }
     }
 }
