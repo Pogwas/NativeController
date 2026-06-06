@@ -40,7 +40,9 @@ internal static class GamepadBindingsPatch
             Bind(__instance, InputKey.Inventory1, "<Gamepad>/dpad/left");  // D-pad Left
             Bind(__instance, InputKey.Inventory2, "<Gamepad>/dpad/up");    // D-pad Up
             Bind(__instance, InputKey.Inventory3, "<Gamepad>/dpad/right"); // D-pad Right
-            // Push/Pull bumpers are added in Task 5.
+            // Push/Pull (RB/LB) can't be done with a binding: the game reads InputKey.Push/Pull as a 2D
+            // scroll axis (ReadValue<Vector2>().y), which a button can't drive. Handled instead by
+            // PushPullPatch (a postfix on InputManager.KeyPullAndPush).
 
             Plugin.Log.LogInfo("[Gamepad] Bindings injected.");
         }
