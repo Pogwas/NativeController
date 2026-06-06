@@ -450,11 +450,12 @@ internal class MenuNavigator : MonoBehaviour
         if (!MenuOpen(out _)) return;
         if (_style == null) _style = new GUIStyle(GUI.skin.label) { fontSize = 18, fontStyle = FontStyle.Bold };
 
-        string text = "D-Pad: Move    A: Select    B: Back";
+        var k = ControllerDetect.Current;
+        string text = $"D-Pad: Move    {ButtonNames.Of(ButtonNames.Control.South, k)}: Select    {ButtonNames.Of(ButtonNames.Control.East, k)}: Back";
         var rect = new Rect(20, Screen.height - 40, 700, 30);
         _style.normal.textColor = Color.black;
-        GUI.Label(new Rect(rect.x + 1, rect.y + 1, rect.width, rect.height), text, _style);
+        ControllerGlyphs.DrawLabel(new Rect(rect.x + 1, rect.y + 1, rect.width, rect.height), text, _style);
         _style.normal.textColor = Color.white;
-        GUI.Label(rect, text, _style);
+        ControllerGlyphs.DrawLabel(rect, text, _style);
     }
 }

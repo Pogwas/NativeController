@@ -14,9 +14,14 @@ internal class ControllerLayoutOverlay : MonoBehaviour
         AccessTools.FieldRefAccess<MenuManager, int>("currentMenuState");
 
     internal static bool Visible;
+    private static int _openFrame;
     private GUIStyle _title, _row, _key;
 
-    internal static void Toggle() => Visible = !Visible;
+    internal static void Toggle()
+    {
+        Visible = !Visible;
+        if (Visible) _openFrame = Time.frameCount;
+    }
 
     private static bool MenuOpen()
     {
@@ -32,15 +37,33 @@ internal class ControllerLayoutOverlay : MonoBehaviour
 
         if (MenuOpen())
         {
-            // Visibility owned by the Settings button; B closes it.
-            if (Visible && gp.buttonEast.wasPressedThisFrame) Visible = false;
+            // Toggled on by the Settings button; dismiss on ANY controller button or a mouse click (1-frame
+            // grace so the press/click that opened it doesn't immediately close it).
+            if (Visible && Time.frameCount > _openFrame + 1 && (AnyButtonPressed(gp) || MouseClicked())) Visible = false;
         }
         else
         {
-            // In-game: show while D-pad Down (unbound in gameplay) is held.
+            // In-game: show while D-pad Down (unbound in gameplay) is held. Leaving a menu to gameplay
+            // therefore also hides it (Down isn't held).
             Visible = gp.dpad.down.isPressed;
         }
     }
+
+    private static bool MouseClicked()
+    {
+        var m = Mouse.current;
+        return m != null && (m.leftButton.wasPressedThisFrame || m.rightButton.wasPressedThisFrame);
+    }
+
+    private static bool AnyButtonPressed(Gamepad gp) =>
+        gp.buttonSouth.wasPressedThisFrame || gp.buttonEast.wasPressedThisFrame
+        || gp.buttonWest.wasPressedThisFrame || gp.buttonNorth.wasPressedThisFrame
+        || gp.leftShoulder.wasPressedThisFrame || gp.rightShoulder.wasPressedThisFrame
+        || gp.leftTrigger.wasPressedThisFrame || gp.rightTrigger.wasPressedThisFrame
+        || gp.dpad.up.wasPressedThisFrame || gp.dpad.down.wasPressedThisFrame
+        || gp.dpad.left.wasPressedThisFrame || gp.dpad.right.wasPressedThisFrame
+        || gp.startButton.wasPressedThisFrame || gp.selectButton.wasPressedThisFrame
+        || gp.leftStickButton.wasPressedThisFrame || gp.rightStickButton.wasPressedThisFrame;
 
     private void OnGUI()
     {
@@ -62,7 +85,7 @@ internal class ControllerLayoutOverlay : MonoBehaviour
         foreach (var pair in rows)
         {
             GUI.Label(new Rect(x + 24f, ry, w * 0.55f, rowH), pair.Key, _row);
-            GUI.Label(new Rect(x + w * 0.55f, ry, w * 0.4f, rowH), pair.Value, _key);
+            ControllerGlyphs.DrawLabel(new Rect(x + w * 0.55f, ry, w * 0.4f, rowH), pair.Value, _key);
             ry += rowH;
         }
     }

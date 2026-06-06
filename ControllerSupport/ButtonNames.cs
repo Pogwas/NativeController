@@ -24,19 +24,19 @@ internal static class ButtonNames
         Control.South => "A", Control.East => "B", Control.West => "X", Control.North => "Y",
         Control.LB => "LB", Control.RB => "RB", Control.LT => "LT", Control.RT => "RT",
         Control.L3 => "L3", Control.R3 => "R3",
-        Control.DpadLeft => "D-pad ←", Control.DpadUp => "D-pad ↑",
-        Control.DpadRight => "D-pad →", Control.DpadDown => "D-pad ↓",
+        Control.DpadLeft => "←", Control.DpadUp => "↑",
+        Control.DpadRight => "→", Control.DpadDown => "↓",
         Control.Start => "Menu", Control.Select => "View",
         Control.LStick => "L-Stick", Control.RStick => "R-Stick", _ => "?"
     };
 
     private static string Ps(Control c) => c switch
     {
-        Control.South => "Cross", Control.East => "Circle", Control.West => "Square", Control.North => "Triangle",
+        Control.South => "✕", Control.East => "○", Control.West => "□", Control.North => "△",
         Control.LB => "L1", Control.RB => "R1", Control.LT => "L2", Control.RT => "R2",
         Control.L3 => "L3", Control.R3 => "R3",
-        Control.DpadLeft => "D-pad ←", Control.DpadUp => "D-pad ↑",
-        Control.DpadRight => "D-pad →", Control.DpadDown => "D-pad ↓",
+        Control.DpadLeft => "←", Control.DpadUp => "↑",
+        Control.DpadRight => "→", Control.DpadDown => "↓",
         Control.Start => "Options", Control.Select => "Create",
         Control.LStick => "L-Stick", Control.RStick => "R-Stick", _ => "?"
     };
@@ -47,8 +47,8 @@ internal static class ButtonNames
         Control.South => "B", Control.East => "A", Control.West => "Y", Control.North => "X",
         Control.LB => "L", Control.RB => "R", Control.LT => "ZL", Control.RT => "ZR",
         Control.L3 => "L3", Control.R3 => "R3",
-        Control.DpadLeft => "D-pad ←", Control.DpadUp => "D-pad ↑",
-        Control.DpadRight => "D-pad →", Control.DpadDown => "D-pad ↓",
+        Control.DpadLeft => "←", Control.DpadUp => "↑",
+        Control.DpadRight => "→", Control.DpadDown => "↓",
         Control.Start => "+", Control.Select => "-",
         Control.LStick => "L-Stick", Control.RStick => "R-Stick", _ => "?"
     };
