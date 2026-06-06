@@ -19,6 +19,7 @@
     <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(Managed)\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(Managed)\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Unity.InputSystem"><HintPath>$(Managed)\Unity.InputSystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="MenuLib"><HintPath>$(RepoGameDir)\BepInEx\plugins\MenuLib.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 
   <Target Name="CopyToPlugins" AfterTargets="Build">
