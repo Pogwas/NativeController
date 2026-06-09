@@ -1,3 +1,4 @@
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace NativeController;
@@ -10,6 +11,56 @@ internal static class ControllerDetect
     internal enum Kind { None, Xbox, PlayStation, Switch, Generic }
 
     internal static Kind Current { get; private set; } = Kind.None;
+
+    // Last-input-wins "is the pad the active input" signal, valid EVERYWHERE (gameplay + menus).
+    // NOTE: MenuNavigator.ControllerActive looks similar but is menu-scoped — its Update early-
+    // returns when no menu is open, so it is permanently false in gameplay. Use THIS for any
+    // gameplay-side gating (prompts, key tags). Starts true when a pad is present so pad players
+    // get prompts immediately on load, before any input.
+    internal static bool PadActive { get; private set; }
+    private static bool _padActiveInit;
+
+    // Called once per frame (GrabPromptOverlay.Update) — cheap polling, no events needed.
+    internal static void TrackActiveInput()
+    {
+        var gp = Gamepad.current;
+        if (gp == null)
+        {
+            PadActive = false;
+            _padActiveInit = true;
+            return;
+        }
+        if (!_padActiveInit)
+        {
+            _padActiveInit = true;
+            PadActive = true;
+        }
+
+        bool padInput =
+            gp.leftStick.ReadValue().sqrMagnitude > 0.02f
+            || gp.rightStick.ReadValue().sqrMagnitude > 0.02f
+            || gp.dpad.ReadValue() != Vector2.zero
+            || gp.buttonSouth.isPressed || gp.buttonEast.isPressed
+            || gp.buttonWest.isPressed || gp.buttonNorth.isPressed
+            || gp.leftTrigger.isPressed || gp.rightTrigger.isPressed
+            || gp.leftShoulder.isPressed || gp.rightShoulder.isPressed
+            || gp.startButton.isPressed || gp.selectButton.isPressed
+            || gp.leftStickButton.isPressed || gp.rightStickButton.isPressed;
+        if (padInput)
+        {
+            PadActive = true;
+            return;
+        }
+
+        var mouse = Mouse.current;
+        bool mouseInput = mouse != null
+            && (mouse.delta.ReadValue().sqrMagnitude > 4f
+                || mouse.leftButton.isPressed || mouse.rightButton.isPressed);
+        var kb = Keyboard.current;
+        bool kbInput = kb != null && kb.anyKey.isPressed;
+        if (mouseInput || kbInput) PadActive = false;
+        // neither input this frame: keep the last winner
+    }
 
     internal static void Init()
     {

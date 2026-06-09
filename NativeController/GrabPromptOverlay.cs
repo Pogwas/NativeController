@@ -35,10 +35,11 @@ internal class GrabPromptOverlay : MonoBehaviour
 
     private void Update()
     {
+        ControllerDetect.TrackActiveInput();       // gameplay-valid last-input-wins signal
         InputDisplayPatch.TickCacheInvalidation(); // vanilla [E]-tag cache follows input flips
         _lineCount = 0;
         if (!Plugin.Enabled.Value || !Plugin.PromptsEnabled.Value) return;
-        if (Gamepad.current == null || !MenuNavigator.ControllerActive) return;
+        if (Gamepad.current == null || !ControllerDetect.PadActive) return;
         if (EmoteWheel.Open) return;
         var mm = MenuManager.instance;
         if (mm != null && MenuStateRef(mm) == (int)MenuManager.MenuState.Open) return;

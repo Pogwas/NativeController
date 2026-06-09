@@ -27,7 +27,7 @@ internal static class InputDisplayPatch
     private static void InputDisplayGetPostfix(InputKey _inputKey, MenuKeybind.KeyType _keyType, MovementDirection _movementDirection, ref string __result)
     {
         if (!Plugin.Enabled.Value || !Plugin.ControllerKeyTags.Value) return;
-        if (Gamepad.current == null || !MenuNavigator.ControllerActive) return;
+        if (Gamepad.current == null || !ControllerDetect.PadActive) return;
         var mm = MenuManager.instance;
         if (mm != null && MenuStateRef(mm) == (int)MenuManager.MenuState.Open) return; // keybind menu keeps keyboard names
 
@@ -105,7 +105,7 @@ internal static class InputDisplayPatch
     internal static void TickCacheInvalidation()
     {
         if (!Plugin.Enabled.Value || !Plugin.ControllerKeyTags.Value) return;
-        bool active = MenuNavigator.ControllerActive && Gamepad.current != null;
+        bool active = ControllerDetect.PadActive && Gamepad.current != null;
         if (active == _lastControllerActive) return;
         _lastControllerActive = active;
         try

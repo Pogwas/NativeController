@@ -33,7 +33,6 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> ControllerKeyTags;
     internal static ConfigEntry<bool> SprintToggle;
     internal static ConfigEntry<bool> GrabToggle;
-    internal static ConfigEntry<float> SprintStopGraceSeconds;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
     internal static ConfigEntry<bool> AimAssistItems;
@@ -88,8 +87,6 @@ public class Plugin : BaseUnityPlugin
             "Press Sprint (L3) once to keep sprinting; it stops when stamina runs out, you stop moving, or you press it again. Applies while a gamepad is connected (also affects keyboard Sprint).");
         GrabToggle = Config.Bind("Gamepad", "ToggleGrab", true,
             "Press Grab (RT) once to keep holding a grabbed object; press again to let go. Auto-releases if the grab breaks. Applies while a gamepad is connected (also affects keyboard/mouse Grab).");
-        SprintStopGraceSeconds = Config.Bind("Gamepad", "SprintStopGraceSeconds", 0.35f,
-            new ConfigDescription("How long you can be stationary before toggle-sprint switches off.", new AcceptableValueRange<float>(0f, 2f)));
 
         AimAssistEnabled = Config.Bind("Aim Assist", "Enabled", true,
             "Master toggle for aim assist (gently nudges your view toward items, and toward enemies when a weapon/staff is held).");
