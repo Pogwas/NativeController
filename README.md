@@ -13,7 +13,10 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 - **Native gamepad binding** — your controller plugs straight into the game's input, not a keyboard/mouse emulation layer.
 - **Right-stick look** with configurable speed, invert, and deadzone.
 - **Full menu navigation** — move with the D-pad / left stick, A to confirm, B to back. Works in the vanilla menus *and* REPOConfig's mod menu (sliders, scrolling lists, tabs).
-- **Controller Layout overlay** — an in-game cheat-sheet of the button map; hold D-pad Down in game, or open it from a button added to the Settings menu (needs MenuLib).
+- **Emote wheel** — hold D-pad Down for a radial wheel of the game's 6 expressions; right stick picks, release plays it. Emotes auto-clear after a few seconds (configurable).
+- **Toggle sprint & toggle grab** — press Sprint once to keep sprinting (ends when stamina empties or you stop moving, like vanilla); press Grab once to keep holding, press again to let go.
+- **Button prompts** — vanilla-style hints flanking the inventory (GRAB / LET GO / ROTATE / CLIMB), and the game's own key tags show your controller's buttons (SHOTGUN [X] instead of [E]) while the pad is the active input.
+- **Controller Layout overlay** — an in-game cheat-sheet of the button map, opened from a button added to the Settings menu (needs MenuLib).
 - **Kind-aware button glyphs** — prompts show the right icons for Xbox, PlayStation, or Switch controllers (auto-detected).
 - **Holdable push/pull on the bumpers** — LB/RB drive the grab beam's push/pull as a real held input.
 - **Aim assist** — an optional, gentle nudge toward grabbable items (when close) and enemies (when a weapon or staff is in hand). It's a bounded correction added to your own look — it never overpowers your turn or locks on. Fully configurable, off-switchable.
@@ -67,6 +70,12 @@ Please open an [Issue](https://github.com/Pogwas/NativeController/issues) and in
 - Steps to reproduce
 
 ## Changelog
+
+### 0.3.0
+
+- **Button prompts** — vanilla-tooltip-style hints flank the inventory bar: GRAB / LET GO / CLIMB on its right, ROTATE on its left, shown exactly when the game's own crosshair says the action is available. Only while the controller is the active input. Config: `[Prompts] Enabled`.
+- **Controller buttons in the game's own key hints** — item tooltips and other key tags show your pad's buttons (SHOTGUN [X] instead of [E]) while the pad is the active input; switches back live when you touch the mouse. Config: `[Prompts] ControllerKeyTags`.
+- Toggle-sprint now ends **instantly** when you stop moving, matching vanilla (the `SprintStopGraceSeconds` config is removed).
 
 ### 0.2.0
 
