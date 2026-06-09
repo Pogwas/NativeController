@@ -32,15 +32,11 @@ internal class GrabPromptOverlay : MonoBehaviour
     private Prompt _rightLine; // RT family (GRAB / LET GO / CLIMB) — right of the inventory bar
     private Prompt _leftLine;  // LT (ROTATE) — left of the inventory bar
     private GUIStyle _style;
-    private GUIStyle _arrowStyle;
-    private bool _showArrows; // D-pad arrows over the inventory slots (independent of aim state)
+    private bool _showArrows; // D-pad arrows in the inventory slot labels (independent of aim state)
+    private bool _labelsSwapped;
+    private readonly string[] _originalSlotLabels = new string[3]; // vanilla "1"/"2"/"3", cached pre-swap
     private InventorySpot[] _spots; // the 3 hotbar slots; located lazily, revalidated when destroyed
     private readonly Vector3[] _corners = new Vector3[4]; // scratch
-
-    // Per-slot screen-space data from the locate pass (UI coords, y-up).
-    private struct SlotScreen { public int Index; public float CenterX; public float CenterY; }
-    private readonly SlotScreen[] _slotScreens = new SlotScreen[8];
-    private int _slotScreenCount;
 
     private void Update()
     {
@@ -57,6 +53,7 @@ internal class GrabPromptOverlay : MonoBehaviour
 
         // Shares all gates above (not the aim state); additionally waits for the first real
         // pad input this level so the arrows don't pop before the controller is in use.
+        // Applied in LateUpdate so the restore also runs when a gate above early-returned.
         _showArrows = Plugin.InventoryArrows.Value && ControllerDetect.PadTouchedThisLevel;
 
         var aim = Aim.instance;
@@ -122,56 +119,63 @@ internal class GrabPromptOverlay : MonoBehaviour
         };
     }
 
+    // Swap the slots' own empty-slot labels (vanilla "1"/"2"/"3", InventorySpot.noItem)
+    // to ← ↑ → while the arrows are wanted; restore the cached originals otherwise.
+    // (InputKey.Inventory1/2/3 = D-pad Left/Up/Right; the game's own mapping at
+    // InventorySpot.cs:122-130.) Runs in LateUpdate so the restore also happens on frames
+    // where Update early-returned (menu open, wheel open, mouse active...).
+    private void LateUpdate()
+    {
+        if (!_showArrows && !_labelsSwapped) return;
+        if (_spots == null || _spots.Length == 0 || _spots[0] == null)
+        {
+            _spots = FindObjectsOfType<InventorySpot>();
+            _labelsSwapped = false; // freshly found spots carry vanilla labels
+            if (_spots.Length == 0) return;
+        }
+
+        var kind = ControllerDetect.Current;
+        foreach (var spot in _spots)
+        {
+            if (spot == null || spot.noItem == null) continue;
+            int idx = spot.inventorySpotIndex;
+            if (idx < 0 || idx > 2) continue;
+            if (_showArrows)
+            {
+                if (_originalSlotLabels[idx] == null) _originalSlotLabels[idx] = spot.noItem.text;
+                string arrow = idx == 0 ? ButtonNames.Of(ButtonNames.Control.DpadLeft, kind)
+                    : idx == 1 ? ButtonNames.Of(ButtonNames.Control.DpadUp, kind)
+                    : ButtonNames.Of(ButtonNames.Control.DpadRight, kind);
+                if (spot.noItem.text != arrow) spot.noItem.text = arrow;
+            }
+            else if (_originalSlotLabels[idx] != null && spot.noItem.text != _originalSlotLabels[idx])
+            {
+                spot.noItem.text = _originalSlotLabels[idx];
+            }
+        }
+        _labelsSwapped = _showArrows;
+    }
+
     private void OnGUI()
     {
         bool wantChips = _rightLine.Plain != null || _leftLine.Plain != null;
-        if (!wantChips && !_showArrows) return;
+        if (!wantChips) return;
         EnsureStyles();
 
         // Flank the inventory bar (user request 2026-06-09): RT prompts on its right,
-        // ROTATE on its left; D-pad arrows above each slot. Falls back to below-crosshair
-        // chips (no arrows) if the HUD pipeline isn't up.
+        // ROTATE on its left. Falls back to below-crosshair if the HUD pipeline isn't up.
         if (TryInventoryScreenBounds(out float minX, out float maxX, out float centerY))
         {
-            if (_showArrows) DrawInventoryArrows();
             float guiY = Screen.height - centerY; // UI coords are y-up; IMGUI is y-down
             if (_rightLine.Plain != null) DrawChip(_rightLine, maxX + 14f, guiY, rightSide: true);
             if (_leftLine.Plain != null) DrawChip(_leftLine, minX - 14f, guiY, rightSide: false);
             return;
         }
-        if (!wantChips) return;
 
         float cx = Screen.width / 2f;
         float y = Screen.height / 2f + 35f;
         if (_rightLine.Plain != null) { DrawChipCentered(_rightLine, cx, y); y += 28f; }
         if (_leftLine.Plain != null) DrawChipCentered(_leftLine, cx, y);
-    }
-
-    // ← ↑ → above inventory slots 1/2/3 (InputKey.Inventory1/2/3 = D-pad Left/Up/Right;
-    // the game's own mapping at InventorySpot.cs:122-130).
-    private void DrawInventoryArrows()
-    {
-        var kind = ControllerDetect.Current;
-        for (int i = 0; i < _slotScreenCount; i++)
-        {
-            string arrow;
-            switch (_slotScreens[i].Index)
-            {
-                case 0: arrow = ButtonNames.Of(ButtonNames.Control.DpadLeft, kind); break;
-                case 1: arrow = ButtonNames.Of(ButtonNames.Control.DpadUp, kind); break;
-                case 2: arrow = ButtonNames.Of(ButtonNames.Control.DpadRight, kind); break;
-                default: continue;
-            }
-            const float chipW = 34f, chipH = 34f;
-            var rect = new Rect(
-                _slotScreens[i].CenterX - chipW / 2f,
-                Screen.height - _slotScreens[i].CenterY - chipH / 2f, // centered ON the slot
-                chipW, chipH);
-            GUI.color = new Color(0.08f, 0.08f, 0.08f, 0.85f);
-            GUI.DrawTexture(rect, Texture2D.whiteTexture);
-            GUI.color = Color.white;
-            ControllerGlyphs.DrawLabel(rect, arrow, _arrowStyle);
-        }
     }
 
     private void DrawChip(Prompt p, float anchorX, float guiCenterY, bool rightSide)
@@ -226,15 +230,12 @@ internal class GrabPromptOverlay : MonoBehaviour
 
         float ySum = 0f;
         int found = 0;
-        _slotScreenCount = 0;
         foreach (var spot in _spots)
         {
             if (spot == null) continue;
             var rt = spot.transform as RectTransform;
             if (rt == null) continue;
             rt.GetWorldCorners(_corners);
-            float slotMinX = float.MaxValue, slotMaxX = float.MinValue;
-            float slotMinY = float.MaxValue, slotMaxY = float.MinValue;
             for (int c = 0; c < 4; c++)
             {
                 Vector3 vp = overlayCam.WorldToViewportPoint(_corners[c]);
@@ -242,20 +243,7 @@ internal class GrabPromptOverlay : MonoBehaviour
                 float sy = Mathf.Lerp(displayMin.y, displayMax.y, vp.y);
                 if (sx < minX) minX = sx;
                 if (sx > maxX) maxX = sx;
-                if (sx < slotMinX) slotMinX = sx;
-                if (sx > slotMaxX) slotMaxX = sx;
-                if (sy < slotMinY) slotMinY = sy;
-                if (sy > slotMaxY) slotMaxY = sy;
                 ySum += sy;
-            }
-            if (_slotScreenCount < _slotScreens.Length)
-            {
-                _slotScreens[_slotScreenCount++] = new SlotScreen
-                {
-                    Index = spot.inventorySpotIndex,
-                    CenterX = (slotMinX + slotMaxX) / 2f,
-                    CenterY = (slotMinY + slotMaxY) / 2f,
-                };
             }
             found++;
         }
@@ -275,7 +263,5 @@ internal class GrabPromptOverlay : MonoBehaviour
             richText = true, // vanilla-tooltip look: orange action + white [button]
         };
         _style.normal.textColor = Color.white;
-        _arrowStyle = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-        _arrowStyle.normal.textColor = new Color(1f, 0.85f, 0.3f); // gold accent
     }
 }
