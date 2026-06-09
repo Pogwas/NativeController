@@ -244,6 +244,10 @@ internal class EmoteWheel : MonoBehaviour
             }
             else
             {
+                // A new pick replaces whatever is currently playing (user preference
+                // 2026-06-09 — no stacking/queueing): stop driving the old face(s) and
+                // vanilla decays them out within 0.2s while the new one fades in.
+                Active.Clear();
                 DoExpression(avatar.playerExpression, index, 100f, true);
                 float duration = Plugin.EmoteDurationSeconds.Value;
                 Active[index] = duration > 0f ? duration : float.PositiveInfinity;
