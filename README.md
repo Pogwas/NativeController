@@ -68,6 +68,12 @@ Please open an [Issue](https://github.com/Pogwas/NativeController/issues) and in
 
 ## Changelog
 
+### 0.2.0
+
+- **Emote wheel** — hold D-pad Down in-game for a radial wheel of the game's 6 expressions; right stick picks, release plays it. Emotes auto-clear after a few seconds (configurable), and the face preview is reframed so you can actually see your face. The Controller Layout overlay moved to the Settings menu (its old hold-D-pad-Down trigger now opens the wheel).
+- **Toggle sprint** — press Sprint (L3) once to keep sprinting; stops when stamina empties, you stop moving, or you press it again. Configurable.
+- **Toggle grab** — press Grab (RT) once to keep holding a grabbed object; press again to let go. Auto-releases if the grab breaks. Configurable.
+
 ### 0.1.0
 
 - Initial release. Native gamepad binding, right-stick look, full button mapping, menu navigation (vanilla + REPOConfig), Controller Layout overlay, kind-aware glyphs (Xbox / PlayStation / Switch), holdable push/pull on the bumpers, configurable aim assist, and splash-screen skip.
