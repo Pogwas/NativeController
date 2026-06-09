@@ -5,9 +5,9 @@ using UnityEngine.InputSystem;
 
 namespace NativeController;
 
-// On-screen controller button reference. In-game (no menu open): shown while D-pad Down is held (D-pad
-// Down is unbound in gameplay). In a menu: toggled by the Settings-menu button (SettingsMenuEntry),
-// closed with B. Recreated per scene by Plugin (REPO wipes DontDestroyOnLoad at boot).
+// On-screen controller button reference. Shown via the Settings-menu button (SettingsMenuEntry,
+// MenuLib), closed with B / any button. No longer self-shows in gameplay — D-pad Down now opens
+// the EmoteWheel instead. Recreated per scene by Plugin (REPO wipes DontDestroyOnLoad at boot).
 internal class ControllerLayoutOverlay : MonoBehaviour
 {
     private static readonly AccessTools.FieldRef<MenuManager, int> StateRef =
@@ -35,18 +35,11 @@ internal class ControllerLayoutOverlay : MonoBehaviour
         var gp = Gamepad.current;
         if (gp == null) { Visible = false; return; }
 
-        if (MenuOpen())
-        {
-            // Toggled on by the Settings button; dismiss on ANY controller button or a mouse click (1-frame
-            // grace so the press/click that opened it doesn't immediately close it).
-            if (Visible && Time.frameCount > _openFrame + 1 && (AnyButtonPressed(gp) || MouseClicked())) Visible = false;
-        }
-        else
-        {
-            // In-game: show while D-pad Down (unbound in gameplay) is held. Leaving a menu to gameplay
-            // therefore also hides it (Down isn't held).
-            Visible = gp.dpad.down.isPressed;
-        }
+        // Toggled on by the Settings button; dismiss on ANY controller button or a mouse click (1-frame
+        // grace so the press/click that opened it doesn't immediately close it). No in-game self-show:
+        // D-pad Down belongs to the EmoteWheel now.
+        if (Visible && Time.frameCount > _openFrame + 1 && (AnyButtonPressed(gp) || MouseClicked())) Visible = false;
+        if (!MenuOpen()) Visible = false;
     }
 
     private static bool MouseClicked()
@@ -106,7 +99,8 @@ internal class ControllerLayoutOverlay : MonoBehaviour
             R("Push / Pull", N(ButtonNames.Control.RB) + " / " + N(ButtonNames.Control.LB)),
             R("Pause / Chat", N(ButtonNames.Control.Start) + " / " + N(ButtonNames.Control.Select)),
             R("Inventory 1 / 2 / 3", N(ButtonNames.Control.DpadLeft) + " / " + N(ButtonNames.Control.DpadUp) + " / " + N(ButtonNames.Control.DpadRight)),
-            R("View this layout", "hold " + N(ButtonNames.Control.DpadDown)),
+            R("Emotes", "hold " + N(ButtonNames.Control.DpadDown)),
+            R("View this layout", "Settings menu"),
             R("Menu: Select / Back", N(ButtonNames.Control.South) + " / " + N(ButtonNames.Control.East)),
         };
     }
