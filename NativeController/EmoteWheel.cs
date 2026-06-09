@@ -240,7 +240,7 @@ internal class EmoteWheel : MonoBehaviour
             {
                 // Just stop driving it — vanilla auto-resets the face 0.2s after the last
                 // DoExpression call and syncs the stop to MP itself (ResetExpressions).
-                Plugin.Log.LogInfo($"[EmoteWheel] Expression {index} OFF"); // TODO: downgrade to LogDebug after playtest
+                Plugin.Log.LogDebug($"[EmoteWheel] Expression {index} OFF");
             }
             else
             {
@@ -251,7 +251,7 @@ internal class EmoteWheel : MonoBehaviour
                 DoExpression(avatar.playerExpression, index, 100f, true);
                 float duration = Plugin.EmoteDurationSeconds.Value;
                 Active[index] = duration > 0f ? duration : float.PositiveInfinity;
-                Plugin.Log.LogInfo($"[EmoteWheel] Expression {index} ON"); // TODO: downgrade to LogDebug after playtest
+                Plugin.Log.LogDebug($"[EmoteWheel] Expression {index} ON");
             }
         }
         catch (Exception e)
