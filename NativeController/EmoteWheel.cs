@@ -32,6 +32,7 @@ internal class EmoteWheel : MonoBehaviour
 
     private const int SegmentCount = 6;
     private const float MinDeflection = 0.35f; // selection threshold floor (drift guard)
+    private const float PickLingerSeconds = 2f; // keep the face preview centered after a pick
 
     // Wheel-toggled expression indices (1-based). Static so Plugin.ResetState can clear
     // on scene load even though the GameObject survives scene changes.
@@ -40,6 +41,7 @@ internal class EmoteWheel : MonoBehaviour
     private static bool _warned;
 
     private int _hovered; // 0 = none, 1..6 = segment (== expression index)
+    private static float _centerLinger; // >0: face preview stays centered (post-pick feedback)
     private GUIStyle _title, _label, _labelHover, _labelActive;
 
     // Called by Plugin.OnSceneLoaded: forget toggled faces + refresh label cache.
@@ -48,6 +50,7 @@ internal class EmoteWheel : MonoBehaviour
         Active.Clear();
         _labels = null;
         Open = false;
+        _centerLinger = 0f;
     }
 
     private void Update()
@@ -73,6 +76,37 @@ internal class EmoteWheel : MonoBehaviour
         // vanilla auto-resets the face and syncs the stop to MP). Same loop vanilla runs for
         // its own toggle list (PlayerExpression.cs:488-494).
         DriveActiveExpressions();
+    }
+
+    // Recenter the game's face-preview widget (PlayerExpressionsUI) into the middle of the wheel.
+    // SemiUI recomputes the widget's localPosition every frame in Update, so a LateUpdate write
+    // wins the frame while we're overriding and vanilla position resumes by itself the frame
+    // after we stop — no restore bookkeeping. While the wheel is open the widget is also
+    // force-shown, acting as a live mirror; after a pick it lingers centered briefly so the
+    // face change is visible at the wheel, not at the half-clipped vanilla spot by the inventory.
+    private void LateUpdate()
+    {
+        bool overridePos = Open || _centerLinger > 0f;
+        if (_centerLinger > 0f) _centerLinger -= Time.deltaTime;
+        if (!overridePos) return;
+
+        var ui = PlayerExpressionsUI.instance;
+        if (ui == null) return;
+        if (Open) ui.Show(); // live mirror while the wheel is up
+
+        var rt = ui.GetComponent<RectTransform>();
+        if (rt == null) return;
+        var parent = rt.parent as RectTransform;
+        if (parent == null) return;
+        var canvas = ui.GetComponentInParent<Canvas>();
+        Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? canvas.worldCamera
+            : null;
+        var screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screenCenter, cam, out Vector2 local))
+        {
+            rt.localPosition = new Vector3(local.x, local.y, rt.localPosition.z);
+        }
     }
 
     private static void DriveActiveExpressions()
@@ -129,6 +163,7 @@ internal class EmoteWheel : MonoBehaviour
         if (avatar == null || avatar.playerExpression == null) return;
         try
         {
+            _centerLinger = PickLingerSeconds; // show the face change centered, not at the clipped vanilla spot
             if (Active.Remove(index))
             {
                 // Just stop driving it — vanilla auto-resets the face 0.2s after the last
