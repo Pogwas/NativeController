@@ -36,6 +36,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> SprintToggle;
     internal static ConfigEntry<bool> GrabToggle;
     internal static ConfigEntry<bool> CrouchToggle;
+    internal static ConfigEntry<ControllerDetect.Style> GlyphStyle;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
     internal static ConfigEntry<bool> AimAssistItems;
@@ -95,6 +96,8 @@ public class Plugin : BaseUnityPlugin
             "Press Grab (RT) once to keep holding a grabbed object; press again to let go. Auto-releases if the grab breaks. Applies while a gamepad is connected (also affects keyboard/mouse Grab).");
         CrouchToggle = Config.Bind("Gamepad", "ToggleCrouch", true,
             "Press Crouch (R3) once to stay crouched; press again to stand. Applies while a gamepad is connected (also affects keyboard Crouch).");
+        GlyphStyle = Config.Bind("Gamepad", "GlyphStyle", ControllerDetect.Style.Auto,
+            "Which controller's button names/glyphs to show. Auto = detect from the connected pad.");
 
         AimAssistEnabled = Config.Bind("Aim Assist", "Enabled", true,
             "Master toggle for aim assist (gently nudges your view toward items, and toward enemies when a weapon/staff is held).");
