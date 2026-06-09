@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -43,6 +44,7 @@ internal class EmoteWheel : MonoBehaviour
     private int _hovered; // 0 = none, 1..6 = segment (== expression index)
     private static float _centerLinger; // >0: face preview stays centered (post-pick feedback)
     private static float _diagTimer;    // TODO: remove diagnostics after playtest confirms centering
+    private static bool _dumpedTree;    // TODO: remove with diagnostics
     private static bool _shrinkMoved;          // rectShrink is currently relocated by us
     private static Vector3 _shrinkHomeLocal;   // its cached vanilla localPosition
     private GUIStyle _title, _label, _labelHover, _labelActive;
@@ -55,6 +57,7 @@ internal class EmoteWheel : MonoBehaviour
         Open = false;
         _centerLinger = 0f;
         _shrinkMoved = false; // widget is freshly created per scene; never restore stale coords
+        _dumpedTree = false;
     }
 
     private void Update()
@@ -141,6 +144,16 @@ internal class EmoteWheel : MonoBehaviour
             _shrinkHomeLocal = shrink.localPosition;
             _shrinkMoved = true;
         }
+        if (!_dumpedTree)
+        {
+            // TODO: remove with diagnostics — one-shot hierarchy dump to find what clips the head.
+            _dumpedTree = true;
+            for (Transform up = ui.transform.parent; up != null; up = up.parent)
+            {
+                Plugin.Log.LogInfo($"[EmoteWheel][Tree] PARENT {Describe(up)}");
+            }
+            DumpTree(ui.transform, 0);
+        }
         Vector3 centerWorld = hudRect.TransformPoint(hudRect.rect.center);
         shrink.position = new Vector3(centerWorld.x, centerWorld.y, shrink.position.z);
 
@@ -153,6 +166,25 @@ internal class EmoteWheel : MonoBehaviour
                 $"shrinkHome={_shrinkHomeLocal} shrinkLocalNow={shrink.localPosition} shrinkWorldNow={shrink.position} " +
                 $"shrinkScale={shrink.localScale} hudCenterW={centerWorld}");
         }
+    }
+
+    // TODO: remove with diagnostics
+    private static void DumpTree(Transform t, int depth)
+    {
+        Plugin.Log.LogInfo($"[EmoteWheel][Tree] {new string(' ', depth * 2)}{Describe(t)}");
+        for (int i = 0; i < t.childCount; i++) DumpTree(t.GetChild(i), depth + 1);
+    }
+
+    // TODO: remove with diagnostics
+    private static string Describe(Transform t)
+    {
+        string comps = string.Join(",", t.GetComponents<Component>().Select(c => c == null ? "null" : c.GetType().Name));
+        string rect = "";
+        if (t is RectTransform rt)
+        {
+            rect = $" anchPos={rt.anchoredPosition} size={rt.sizeDelta} aMin={rt.anchorMin} aMax={rt.anchorMax} pivot={rt.pivot} scale={rt.localScale}";
+        }
+        return $"'{t.name}' active={t.gameObject.activeSelf} [{comps}]{rect}";
     }
 
     // Put rectShrink back where vanilla had it once the override (wheel/linger) ends.
