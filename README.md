@@ -76,6 +76,7 @@ Please open an [Issue](https://github.com/Pogwas/NativeController/issues) and in
 - **Button prompts** — vanilla-tooltip-style hints flank the inventory bar: GRAB / LET GO / CLIMB on its right, ROTATE on its left, shown exactly when the game's own crosshair says the action is available. Only while the controller is the active input. Config: `[Prompts] Enabled`.
 - **Controller buttons in the game's own key hints** — item tooltips and other key tags show your pad's buttons (SHOTGUN [X] instead of [E]) while the pad is the active input; switches back live when you touch the mouse. Config: `[Prompts] ControllerKeyTags`.
 - Toggle-sprint now ends **instantly** when you stop moving, matching vanilla (the `SprintStopGraceSeconds` config is removed).
+- Key hints show button **symbols** (✕ ○ □ △, ← ↑ → ↓) instead of text names.
 
 ### 0.2.0
 
