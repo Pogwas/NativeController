@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -34,9 +35,19 @@ internal class GrabPromptOverlay : MonoBehaviour
     private GUIStyle _style;
     private bool _showArrows; // D-pad arrows in the inventory slot labels (independent of aim state)
     private bool _labelsSwapped;
-    private readonly string[] _originalSlotLabels = new string[3]; // vanilla "1"/"2"/"3", cached pre-swap
     private InventorySpot[] _spots; // the 3 hotbar slots; located lazily, revalidated when destroyed
     private readonly Vector3[] _corners = new Vector3[4]; // scratch
+
+    // Every TMP label on a slot that displays its number — the empty-slot text (noItem) AND
+    // the little corner number on occupied slots (an unreferenced prefab child, so we find
+    // labels generically by content instead of by field name).
+    private struct SlotLabel
+    {
+        public TMPro.TextMeshProUGUI Text;
+        public string Original;
+        public int SpotIndex;
+    }
+    private readonly List<SlotLabel> _slotLabels = new List<SlotLabel>(8);
 
     private void Update()
     {
@@ -119,41 +130,64 @@ internal class GrabPromptOverlay : MonoBehaviour
         };
     }
 
-    // Swap the slots' own empty-slot labels (vanilla "1"/"2"/"3", InventorySpot.noItem)
-    // to ← ↑ → while the arrows are wanted; restore the cached originals otherwise.
+    // Swap the slots' own number labels to ← ↑ → while the arrows are wanted; restore the
+    // cached originals otherwise. Covers BOTH the empty-slot text (InventorySpot.noItem) and
+    // the small corner numbers on occupied slots (unreferenced prefab children — found
+    // generically: any TMP under the spot whose text is the slot's number, plus noItem).
     // (InputKey.Inventory1/2/3 = D-pad Left/Up/Right; the game's own mapping at
     // InventorySpot.cs:122-130.) Runs in LateUpdate so the restore also happens on frames
     // where Update early-returned (menu open, wheel open, mouse active...).
     private void LateUpdate()
     {
         if (!_showArrows && !_labelsSwapped) return;
-        if (_spots == null || _spots.Length == 0 || _spots[0] == null)
+        if (NeedSlotLabelRefresh())
         {
-            _spots = FindObjectsOfType<InventorySpot>();
+            _slotLabels.Clear();
             _labelsSwapped = false; // freshly found spots carry vanilla labels
-            if (_spots.Length == 0) return;
+            _spots = FindObjectsOfType<InventorySpot>();
+            foreach (var spot in _spots)
+            {
+                int idx = spot.inventorySpotIndex;
+                if (idx < 0 || idx > 2) continue;
+                string number = (idx + 1).ToString();
+                foreach (var tmp in spot.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true))
+                {
+                    if (tmp == spot.noItem || tmp.text.Trim() == number)
+                    {
+                        _slotLabels.Add(new SlotLabel { Text = tmp, Original = tmp.text, SpotIndex = idx });
+                    }
+                }
+            }
+            if (_slotLabels.Count == 0) return;
         }
 
         var kind = ControllerDetect.Current;
-        foreach (var spot in _spots)
+        foreach (var label in _slotLabels)
         {
-            if (spot == null || spot.noItem == null) continue;
-            int idx = spot.inventorySpotIndex;
-            if (idx < 0 || idx > 2) continue;
+            if (label.Text == null) continue;
             if (_showArrows)
             {
-                if (_originalSlotLabels[idx] == null) _originalSlotLabels[idx] = spot.noItem.text;
-                string arrow = idx == 0 ? ButtonNames.Of(ButtonNames.Control.DpadLeft, kind)
-                    : idx == 1 ? ButtonNames.Of(ButtonNames.Control.DpadUp, kind)
+                string arrow = label.SpotIndex == 0 ? ButtonNames.Of(ButtonNames.Control.DpadLeft, kind)
+                    : label.SpotIndex == 1 ? ButtonNames.Of(ButtonNames.Control.DpadUp, kind)
                     : ButtonNames.Of(ButtonNames.Control.DpadRight, kind);
-                if (spot.noItem.text != arrow) spot.noItem.text = arrow;
+                if (label.Text.text != arrow) label.Text.text = arrow;
             }
-            else if (_originalSlotLabels[idx] != null && spot.noItem.text != _originalSlotLabels[idx])
+            else if (label.Text.text != label.Original)
             {
-                spot.noItem.text = _originalSlotLabels[idx];
+                label.Text.text = label.Original;
             }
         }
         _labelsSwapped = _showArrows;
+    }
+
+    private bool NeedSlotLabelRefresh()
+    {
+        if (_spots == null || _spots.Length == 0 || _spots[0] == null || _slotLabels.Count == 0) return true;
+        foreach (var label in _slotLabels)
+        {
+            if (label.Text == null) return true; // a label got destroyed — rebuild the cache
+        }
+        return false;
     }
 
     private void OnGUI()
