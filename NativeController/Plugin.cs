@@ -29,6 +29,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> EmoteZoomOut;
     internal static ConfigEntry<float> EmoteCameraLower;
     internal static ConfigEntry<float> EmoteDurationSeconds;
+    internal static ConfigEntry<bool> PromptsEnabled;
     internal static ConfigEntry<bool> SprintToggle;
     internal static ConfigEntry<bool> GrabToggle;
     internal static ConfigEntry<float> SprintStopGraceSeconds;
@@ -51,6 +52,7 @@ public class Plugin : BaseUnityPlugin
     private static GameObject _overlayGO;
     private static GameObject _aimAssistGO;
     private static GameObject _emoteWheelGO;
+    private static GameObject _grabPromptsGO;
 
     private void Awake()
     {
@@ -77,6 +79,8 @@ public class Plugin : BaseUnityPlugin
             new ConfigDescription("How far the face-preview camera drops while the wheel is open (metres) — raises the head in the picture. Tune live alongside PreviewZoomOut.", new AcceptableValueRange<float>(-1f, 1f)));
         EmoteDurationSeconds = Config.Bind("Emote Wheel", "EmoteDurationSeconds", 5f,
             new ConfigDescription("How long a picked emote stays on your face before returning to normal. 0 = it stays until you pick it again on the wheel.", new AcceptableValueRange<float>(0f, 30f)));
+        PromptsEnabled = Config.Bind("Prompts", "Enabled", true,
+            "Show controller prompts near the crosshair (Grab when aiming at a grabbable, Let go / Rotate while holding, Climb when tumbling at a wall). Only shown while the controller is the active input.");
         SprintToggle = Config.Bind("Gamepad", "ToggleSprint", true,
             "Press Sprint (L3) once to keep sprinting; it stops when stamina runs out, you stop moving, or you press it again. Applies while a gamepad is connected (also affects keyboard Sprint).");
         GrabToggle = Config.Bind("Gamepad", "ToggleGrab", true,
@@ -152,6 +156,12 @@ public class Plugin : BaseUnityPlugin
             _emoteWheelGO = new GameObject("NativeController.EmoteWheel", typeof(EmoteWheel));
             DontDestroyOnLoad(_emoteWheelGO);
             Log.LogDebug("[Gamepad] EmoteWheel (re)created.");
+        }
+        if (_grabPromptsGO == null)
+        {
+            _grabPromptsGO = new GameObject("NativeController.GrabPrompts", typeof(GrabPromptOverlay));
+            DontDestroyOnLoad(_grabPromptsGO);
+            Log.LogDebug("[Gamepad] GrabPromptOverlay (re)created.");
         }
         EmoteWheel.ResetState(); // every scene load: forget toggled faces, refresh labels
     }
