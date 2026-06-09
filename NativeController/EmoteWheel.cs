@@ -43,6 +43,8 @@ internal class EmoteWheel : MonoBehaviour
     private int _hovered; // 0 = none, 1..6 = segment (== expression index)
     private static float _centerLinger; // >0: face preview stays centered (post-pick feedback)
     private static float _diagTimer;    // TODO: remove diagnostics after playtest confirms centering
+    private static bool _shrinkMoved;          // rectShrink is currently relocated by us
+    private static Vector3 _shrinkHomeLocal;   // its cached vanilla localPosition
     private GUIStyle _title, _label, _labelHover, _labelActive;
 
     // Called by Plugin.OnSceneLoaded: forget toggled faces + refresh label cache.
@@ -52,6 +54,7 @@ internal class EmoteWheel : MonoBehaviour
         _labels = null;
         Open = false;
         _centerLinger = 0f;
+        _shrinkMoved = false; // widget is freshly created per scene; never restore stale coords
     }
 
     private void Update()
@@ -93,7 +96,12 @@ internal class EmoteWheel : MonoBehaviour
     {
         bool overridePos = Open || _centerLinger > 0f;
         if (_centerLinger > 0f) _centerLinger -= Time.deltaTime;
-        if (!overridePos) { _diagTimer = 0f; return; }
+        if (!overridePos)
+        {
+            _diagTimer = 0f;
+            RestoreShrink();
+            return;
+        }
 
         // TODO: remove diagnostics after playtest confirms centering
         bool diag = false;
@@ -116,30 +124,46 @@ internal class EmoteWheel : MonoBehaviour
             return;
         }
 
-        // The transform SemiUI repositions each frame (SemiUI.UpdatePositionLogic): the whole
-        // object when animateTheEntireObject, else its textRectTransform.
-        Transform moved = ui.animateTheEntireObject || ui.textRectTransform == null
-            ? ui.transform
-            : ui.textRectTransform;
-        var parent = moved.parent;
-        if (parent == null) return;
-
-        // HUD-canvas center expressed in the moved transform's parent-local space — the exact
-        // space SemiUI's localPosition writes (and showPosition, the authored home) live in.
+        // Diagnostics (2026-06-09) showed the widget ROOT already sits at canvas center in
+        // vanilla (showPosition (0,-7) in 'Game Hud' space) — the visible head is offset down
+        // to the inventory area by the rectShrink CHILD (the element the game scales 0.7↔1.0
+        // when expressing, i.e. the actual visual container). So center rectShrink, not the
+        // root. The game never repositions rectShrink (only scales it), so a direct write
+        // sticks; we cache its home and restore when the override ends.
+        var shrink = ui.rectShrink;
+        if (shrink == null)
+        {
+            if (diag) Plugin.Log.LogInfo("[EmoteWheel][Diag] BAIL rectShrink=null");
+            return;
+        }
+        if (!_shrinkMoved)
+        {
+            _shrinkHomeLocal = shrink.localPosition;
+            _shrinkMoved = true;
+        }
         Vector3 centerWorld = hudRect.TransformPoint(hudRect.rect.center);
-        Vector2 desiredLocal = parent.InverseTransformPoint(centerWorld);
-        ui.SemiUIScoot(desiredLocal - ui.showPosition);
+        shrink.position = new Vector3(centerWorld.x, centerWorld.y, shrink.position.z);
 
         if (diag)
         {
             // TODO: remove diagnostics after playtest confirms centering
-            var lg = LevelGenerator.Instance;
             Plugin.Log.LogInfo(
-                $"[EmoteWheel][Diag] open={Open} linger={_centerLinger:F2} gen={(lg != null ? lg.Generated.ToString() : "noLG")} " +
-                $"menuLvl={SemiFunc.MenuLevel()} hidden={ui.isHidden} avatarMenu={(ui.PlayerAvatarMenu != null ? ui.PlayerAvatarMenu.activeSelf.ToString() : "null")} " +
-                $"animAll={ui.animateTheEntireObject} moved='{moved.name}' parent='{parent.name}' parentScale={parent.lossyScale} " +
-                $"localPos={moved.localPosition} show={ui.showPosition} desired={desiredLocal} offset={desiredLocal - ui.showPosition} " +
-                $"hudSize={hudRect.sizeDelta} hudCenterW={centerWorld}");
+                $"[EmoteWheel][Diag] open={Open} linger={_centerLinger:F2} hidden={ui.isHidden} " +
+                $"avatarMenu={(ui.PlayerAvatarMenu != null ? ui.PlayerAvatarMenu.activeSelf.ToString() : "null")} " +
+                $"shrinkHome={_shrinkHomeLocal} shrinkLocalNow={shrink.localPosition} shrinkWorldNow={shrink.position} " +
+                $"shrinkScale={shrink.localScale} hudCenterW={centerWorld}");
+        }
+    }
+
+    // Put rectShrink back where vanilla had it once the override (wheel/linger) ends.
+    private static void RestoreShrink()
+    {
+        if (!_shrinkMoved) return;
+        _shrinkMoved = false;
+        var ui = PlayerExpressionsUI.instance;
+        if (ui != null && ui.rectShrink != null)
+        {
+            ui.rectShrink.localPosition = _shrinkHomeLocal;
         }
     }
 
