@@ -28,6 +28,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> EmoteWheelEnabled;
     internal static ConfigEntry<float> EmoteZoomOut;
     internal static ConfigEntry<float> EmoteCameraLower;
+    internal static ConfigEntry<float> EmoteDurationSeconds;
     internal static ConfigEntry<bool> SprintToggle;
     internal static ConfigEntry<bool> GrabToggle;
     internal static ConfigEntry<float> SprintStopGraceSeconds;
@@ -74,6 +75,8 @@ public class Plugin : BaseUnityPlugin
             new ConfigDescription("How far the face-preview camera pulls back while the wheel is open (metres). Tune live in the in-game mod settings until the whole face is visible.", new AcceptableValueRange<float>(0f, 3f)));
         EmoteCameraLower = Config.Bind("Emote Wheel", "PreviewCameraLower", 0.25f,
             new ConfigDescription("How far the face-preview camera drops while the wheel is open (metres) — raises the head in the picture. Tune live alongside PreviewZoomOut.", new AcceptableValueRange<float>(-1f, 1f)));
+        EmoteDurationSeconds = Config.Bind("Emote Wheel", "EmoteDurationSeconds", 5f,
+            new ConfigDescription("How long a picked emote stays on your face before returning to normal. 0 = it stays until you pick it again on the wheel.", new AcceptableValueRange<float>(0f, 30f)));
         SprintToggle = Config.Bind("Gamepad", "ToggleSprint", true,
             "Press Sprint (L3) once to keep sprinting; it stops when stamina runs out, you stop moving, or you press it again. Applies while a gamepad is connected (also affects keyboard Sprint).");
         GrabToggle = Config.Bind("Gamepad", "ToggleGrab", true,

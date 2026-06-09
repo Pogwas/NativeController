@@ -32,16 +32,16 @@ internal class EmoteWheel : MonoBehaviour
 
     private const int SegmentCount = 6;
     private const float MinDeflection = 0.35f; // selection threshold floor (drift guard)
-    private const float PickLingerSeconds = 2f; // keep the face preview centered after a pick
 
-    // Wheel-toggled expression indices (1-based). Static so Plugin.ResetState can clear
+    // Wheel-toggled expressions: index (1-based) -> seconds remaining (infinity when the
+    // duration config is 0 = stay until re-picked). Static so Plugin.ResetState can clear
     // on scene load even though the GameObject survives scene changes.
-    private static readonly HashSet<int> Active = new HashSet<int>();
+    private static readonly Dictionary<int, float> Active = new Dictionary<int, float>();
+    private static readonly List<int> Expired = new List<int>(); // scratch, avoids alloc per frame
     private static string[] _labels; // [1..6]; rebuilt per scene
     private static bool _warned;
 
     private int _hovered; // 0 = none, 1..6 = segment (== expression index)
-    private static float _centerLinger;   // >0: preview keeps the wheel framing (post-pick feedback)
     private static Transform _previewCam; // camera filming the mini expression avatar
     private static bool _camMoved;        // camera is currently reframed by us
     private static Vector3 _camHomeLocal; // its cached vanilla localPosition
@@ -53,7 +53,6 @@ internal class EmoteWheel : MonoBehaviour
         Active.Clear();
         _labels = null;
         Open = false;
-        _centerLinger = 0f;
         _previewCam = null; // rig is freshly created per scene
         _camMoved = false;  // never restore stale coords across scenes
     }
@@ -95,8 +94,10 @@ internal class EmoteWheel : MonoBehaviour
     // down by the inventory.
     private void LateUpdate()
     {
-        bool overridePos = Open || _centerLinger > 0f;
-        if (_centerLinger > 0f) _centerLinger -= Time.deltaTime;
+        // Hold the adjusted framing the entire time any wheel-emote is active — restoring
+        // mid-emote caused visible perspective jumps. When the last emote expires the
+        // preview hides anyway, so the restore is invisible.
+        bool overridePos = Open || Active.Count > 0;
         if (!overridePos)
         {
             RestoreCamera();
@@ -162,11 +163,31 @@ internal class EmoteWheel : MonoBehaviour
         var previewExpression = PlayerExpressionsUI.instance != null
             ? PlayerExpressionsUI.instance.playerExpression
             : null;
+
+        // Count down each emote's lifetime; back to the default face when it runs out
+        // (vanilla has no auto-timeout — keyboard players just release/re-press the key,
+        // but re-opening a wheel to clear a face is clunky). Duration 0 = no timeout.
+        Expired.Clear();
+        if (Plugin.EmoteDurationSeconds.Value > 0f)
+        {
+            foreach (int index in new List<int>(Active.Keys))
+            {
+                Active[index] -= Time.deltaTime;
+                if (Active[index] <= 0f) Expired.Add(index);
+            }
+            foreach (int index in Expired) Active.Remove(index);
+            if (Active.Count == 0) return;
+        }
+
         try
         {
-            foreach (int index in Active)
+            foreach (int index in Active.Keys)
             {
-                DoExpression(avatar.playerExpression, index, 100f, false);
+                // _playerInput: true every frame is exactly what vanilla's hold path does
+                // (PlayerExpression.cs:316-318) — it keeps the preview widget at full size
+                // via ShrinkReset, instead of letting it decay to the small idle look
+                // mid-emote (which read as the preview "changing perspective").
+                DoExpression(avatar.playerExpression, index, 100f, true);
                 if (previewExpression != null)
                 {
                     previewExpression.OverrideExpressionSet(index, 100f);
@@ -215,7 +236,6 @@ internal class EmoteWheel : MonoBehaviour
         if (avatar == null || avatar.playerExpression == null) return;
         try
         {
-            _centerLinger = PickLingerSeconds; // show the face change centered, not at the clipped vanilla spot
             if (Active.Remove(index))
             {
                 // Just stop driving it — vanilla auto-resets the face 0.2s after the last
@@ -224,11 +244,9 @@ internal class EmoteWheel : MonoBehaviour
             }
             else
             {
-                // _playerInput: true on the first call pops the face-preview UI wide open
-                // (ShrinkReset), exactly like a vanilla keyboard press. Steady-state frames
-                // are driven by DriveActiveExpressions with _playerInput: false.
                 DoExpression(avatar.playerExpression, index, 100f, true);
-                Active.Add(index);
+                float duration = Plugin.EmoteDurationSeconds.Value;
+                Active[index] = duration > 0f ? duration : float.PositiveInfinity;
                 Plugin.Log.LogInfo($"[EmoteWheel] Expression {index} ON"); // TODO: downgrade to LogDebug after playtest
             }
         }
@@ -271,7 +289,7 @@ internal class EmoteWheel : MonoBehaviour
             GUI.DrawTexture(rect, Texture2D.whiteTexture);
             GUI.color = Color.white;
 
-            GUIStyle style = i == _hovered ? _labelHover : (Active.Contains(i) ? _labelActive : _label);
+            GUIStyle style = i == _hovered ? _labelHover : (Active.ContainsKey(i) ? _labelActive : _label);
             GUI.Label(rect, _labels[i], style);
         }
     }
