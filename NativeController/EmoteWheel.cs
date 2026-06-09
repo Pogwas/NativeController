@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -42,10 +41,10 @@ internal class EmoteWheel : MonoBehaviour
     private static bool _warned;
 
     private int _hovered; // 0 = none, 1..6 = segment (== expression index)
-    private static float _centerLinger;      // >0: face preview stays centered (post-pick feedback)
-    private static RectTransform _headRect;  // 'Player Avatar Render Texture' — the visible head image
-    private static bool _headMoved;          // head image is currently relocated by us
-    private static Vector3 _headHomeLocal;   // its cached vanilla localPosition
+    private static float _centerLinger;   // >0: preview keeps the wheel framing (post-pick feedback)
+    private static Transform _previewCam; // camera filming the mini expression avatar
+    private static bool _camMoved;        // camera is currently reframed by us
+    private static Vector3 _camHomeLocal; // its cached vanilla localPosition
     private GUIStyle _title, _label, _labelHover, _labelActive;
 
     // Called by Plugin.OnSceneLoaded: forget toggled faces + refresh label cache.
@@ -55,8 +54,8 @@ internal class EmoteWheel : MonoBehaviour
         _labels = null;
         Open = false;
         _centerLinger = 0f;
-        _headRect = null;   // widget is freshly created per scene
-        _headMoved = false; // never restore stale coords across scenes
+        _previewCam = null; // rig is freshly created per scene
+        _camMoved = false;  // never restore stale coords across scenes
     }
 
     private void Update()
@@ -100,67 +99,56 @@ internal class EmoteWheel : MonoBehaviour
         if (_centerLinger > 0f) _centerLinger -= Time.deltaTime;
         if (!overridePos)
         {
-            RestoreHead();
+            RestoreCamera();
             return;
         }
 
         var ui = PlayerExpressionsUI.instance;
-        var hud = HUDCanvas.instance;
-        if (ui == null || hud == null) return;
+        if (ui == null) return;
         if (Open)
         {
-            ui.Show();        // live mirror while the wheel is up
+            ui.Show();        // keep the preview visible while the wheel is up
             ui.ShrinkReset(); // full size (1.0) + full alpha, instead of the idle 0.7/0.35 look
         }
 
-        var hudRect = hud.GetComponent<RectTransform>();
-        if (hudRect == null) return;
-
-        // Hierarchy (dumped 2026-06-09): the visible head is the 184x184 'Player Avatar Render
-        // Texture' RawImage hanging ~400 canvas-units BELOW the widget root — in vanilla it
-        // peeks over the canvas's bottom edge by design (only the dome shows). No mask is
-        // involved; anything below the canvas bottom simply falls outside the HUD camera's
-        // render texture. So center the head IMAGE itself and restore it afterwards.
-        var head = FindHeadRect(ui);
-        if (head == null) return;
-        if (!_headMoved)
+        // The preview stays at its vanilla spot (UI repositioning fought the prefab layout —
+        // the widget is *designed* to peek over the screen's bottom edge). Instead, reframe
+        // the dedicated camera that films the mini expression avatar (parked at world
+        // (0,0,-1000), PlayerAvatarMenu.cs:51-54): dolly it back and drop it slightly so the
+        // whole face sits in the upper part of the frame — the part that's actually on screen.
+        // Both values are live-tunable configs. Applied fresh from the cached home every
+        // frame, restored when the wheel closes and the linger ends.
+        var cam = FindPreviewCamera(ui);
+        if (cam == null) return;
+        if (!_camMoved)
         {
-            _headHomeLocal = head.localPosition;
-            _headMoved = true;
+            _camHomeLocal = cam.localPosition;
+            _camMoved = true;
         }
-        Vector3 centerWorld = hudRect.TransformPoint(hudRect.rect.center);
-        // Land the image's CENTER on the canvas center regardless of its pivot (it's (0,0)).
-        Vector2 pivotOffset = (head.pivot - new Vector2(0.5f, 0.5f)) * head.rect.size;
-        head.position = new Vector3(centerWorld.x + pivotOffset.x, centerWorld.y + pivotOffset.y, head.position.z);
+        cam.localPosition = _camHomeLocal;
+        cam.position += cam.forward * -Plugin.EmoteZoomOut.Value + cam.up * -Plugin.EmoteCameraLower.Value;
     }
 
-    // The actual visible element: 'Player Avatar Render Texture' (a RawImage showing the
-    // mini-avatar camera). Found by name with a by-component-name fallback — RawImage's type
-    // lives in an assembly this project doesn't reference, so compare type names instead.
-    private static RectTransform FindHeadRect(PlayerExpressionsUI ui)
+    private static Transform FindPreviewCamera(PlayerExpressionsUI ui)
     {
-        if (_headRect != null) return _headRect;
-        Transform root = ui.rectShrink != null ? ui.rectShrink : (Transform)ui.transform;
-        foreach (var rt in root.GetComponentsInChildren<RectTransform>(true))
-        {
-            if (rt.name == "Player Avatar Render Texture"
-                || rt.GetComponents<Component>().Any(c => c != null && c.GetType().Name == "RawImage"))
-            {
-                _headRect = rt;
-                break;
-            }
-        }
-        return _headRect;
+        if (_previewCam != null) return _previewCam;
+        if (ui.PlayerAvatarMenu == null) return null;
+        var rig = ui.PlayerAvatarMenu.GetComponent<PlayerAvatarMenu>();
+        if (rig == null || rig.cameraAndStuff == null) return null;
+        var cam = rig.cameraAndStuff.GetComponentInChildren<Camera>(true);
+        if (cam == null) return null;
+        _previewCam = cam.transform;
+        return _previewCam;
     }
 
-    // Put the head image back where vanilla had it once the override (wheel/linger) ends.
-    private static void RestoreHead()
+    // Put the preview camera back to its vanilla framing once the override ends.
+    private static void RestoreCamera()
     {
-        if (!_headMoved) return;
-        _headMoved = false;
-        if (_headRect != null)
+        if (!_camMoved) return;
+        _camMoved = false;
+        if (_previewCam != null)
         {
-            _headRect.localPosition = _headHomeLocal;
+            _previewCam.localPosition = _camHomeLocal;
         }
     }
 

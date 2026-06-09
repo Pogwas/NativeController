@@ -26,6 +26,8 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> StickDeadzone;
     internal static ConfigEntry<float> MenuCursorSpeed;
     internal static ConfigEntry<bool> EmoteWheelEnabled;
+    internal static ConfigEntry<float> EmoteZoomOut;
+    internal static ConfigEntry<float> EmoteCameraLower;
     internal static ConfigEntry<bool> SprintToggle;
     internal static ConfigEntry<bool> GrabToggle;
     internal static ConfigEntry<float> SprintStopGraceSeconds;
@@ -68,6 +70,10 @@ public class Plugin : BaseUnityPlugin
             new ConfigDescription("Left-stick cursor speed when navigating menus.", new AcceptableValueRange<float>(1f, 50f)));
         EmoteWheelEnabled = Config.Bind("Emote Wheel", "Enabled", true,
             "Hold D-pad Down in-game to open an emote wheel (right stick to pick, release to toggle the expression on/off).");
+        EmoteZoomOut = Config.Bind("Emote Wheel", "PreviewZoomOut", 0.5f,
+            new ConfigDescription("How far the face-preview camera pulls back while the wheel is open (metres). Tune live in the in-game mod settings until the whole face is visible.", new AcceptableValueRange<float>(0f, 3f)));
+        EmoteCameraLower = Config.Bind("Emote Wheel", "PreviewCameraLower", 0.25f,
+            new ConfigDescription("How far the face-preview camera drops while the wheel is open (metres) — raises the head in the picture. Tune live alongside PreviewZoomOut.", new AcceptableValueRange<float>(-1f, 1f)));
         SprintToggle = Config.Bind("Gamepad", "ToggleSprint", true,
             "Press Sprint (L3) once to keep sprinting; it stops when stamina runs out, you stop moving, or you press it again. Applies while a gamepad is connected (also affects keyboard Sprint).");
         GrabToggle = Config.Bind("Gamepad", "ToggleGrab", true,
