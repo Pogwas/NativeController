@@ -30,6 +30,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> EmoteCameraLower;
     internal static ConfigEntry<float> EmoteDurationSeconds;
     internal static ConfigEntry<bool> PromptsEnabled;
+    internal static ConfigEntry<bool> ControllerKeyTags;
     internal static ConfigEntry<bool> SprintToggle;
     internal static ConfigEntry<bool> GrabToggle;
     internal static ConfigEntry<float> SprintStopGraceSeconds;
@@ -81,6 +82,8 @@ public class Plugin : BaseUnityPlugin
             new ConfigDescription("How long a picked emote stays on your face before returning to normal. 0 = it stays until you pick it again on the wheel.", new AcceptableValueRange<float>(0f, 30f)));
         PromptsEnabled = Config.Bind("Prompts", "Enabled", true,
             "Show controller prompts near the crosshair (Grab when aiming at a grabbable, Let go / Rotate while holding, Climb when tumbling at a wall). Only shown while the controller is the active input.");
+        ControllerKeyTags = Config.Bind("Prompts", "ControllerKeyTags", true,
+            "Show controller buttons inside the game's own key hints (e.g. SHOTGUN [X] instead of [E]) while the controller is the active input.");
         SprintToggle = Config.Bind("Gamepad", "ToggleSprint", true,
             "Press Sprint (L3) once to keep sprinting; it stops when stamina runs out, you stop moving, or you press it again. Applies while a gamepad is connected (also affects keyboard Sprint).");
         GrabToggle = Config.Bind("Gamepad", "ToggleGrab", true,

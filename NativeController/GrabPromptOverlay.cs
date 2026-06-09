@@ -20,14 +20,22 @@ internal class GrabPromptOverlay : MonoBehaviour
     private static AccessTools.FieldRef<Aim, Aim.State> _aimStateRef;
     private static bool _aimRefFailed; // one-time warn + permanent disable (quiet-mode policy)
 
+    // Vanilla item-tooltip look: action word in vanilla-orange, button in white brackets.
+    private struct Prompt
+    {
+        public string Rich;  // drawn (IMGUI rich text)
+        public string Plain; // measured (CalcSize counts markup characters)
+    }
+
     private ControllerDetect.Kind _cachedKind = (ControllerDetect.Kind)(-1);
-    private string _grab, _letGo, _rotate, _climb;
-    private readonly string[] _lines = new string[2];
+    private Prompt _grab, _letGo, _rotate, _climb;
+    private readonly Prompt[] _lines = new Prompt[2];
     private int _lineCount;
     private GUIStyle _style;
 
     private void Update()
     {
+        InputDisplayPatch.TickCacheInvalidation(); // vanilla [E]-tag cache follows input flips
         _lineCount = 0;
         if (!Plugin.Enabled.Value || !Plugin.PromptsEnabled.Value) return;
         if (Gamepad.current == null || !MenuNavigator.ControllerActive) return;
@@ -77,14 +85,24 @@ internal class GrabPromptOverlay : MonoBehaviour
     private void EnsureNames()
     {
         var kind = ControllerDetect.Current;
-        if (kind == _cachedKind && _grab != null) return;
+        if (kind == _cachedKind && _grab.Plain != null) return;
         _cachedKind = kind;
         string rt = ButtonNames.Of(ButtonNames.Control.RT, kind);
         string lt = ButtonNames.Of(ButtonNames.Control.LT, kind);
-        _grab = rt + "  Grab";
-        _letGo = rt + "  Let go";
-        _rotate = lt + "  Rotate";
-        _climb = rt + "  Climb";
+        _grab = Make("GRAB", rt);
+        _letGo = Make("LET GO", rt);
+        _rotate = Make("ROTATE", lt);
+        _climb = Make("CLIMB", rt);
+    }
+
+    private static Prompt Make(string action, string button)
+    {
+        return new Prompt
+        {
+            // #FFA21C ~ the vanilla tooltip orange ("SHOTGUN [E]" style)
+            Rich = $"<color=#FFA21C>{action}</color> <color=#FFFFFF>[{button}]</color>",
+            Plain = $"{action} [{button}]",
+        };
     }
 
     private void OnGUI()
@@ -95,12 +113,12 @@ internal class GrabPromptOverlay : MonoBehaviour
         float y = Screen.height / 2f + 35f; // just below the crosshair
         for (int i = 0; i < _lineCount; i++)
         {
-            Vector2 size = _style.CalcSize(new GUIContent(_lines[i]));
+            Vector2 size = _style.CalcSize(new GUIContent(_lines[i].Plain));
             var rect = new Rect(cx - (size.x + 18f) / 2f, y, size.x + 18f, 24f);
             GUI.color = new Color(0.08f, 0.08f, 0.08f, 0.85f);
             GUI.DrawTexture(rect, Texture2D.whiteTexture);
             GUI.color = Color.white;
-            ControllerGlyphs.DrawLabel(rect, _lines[i], _style);
+            GUI.Label(rect, _lines[i].Rich, _style);
             y += 28f;
         }
     }
@@ -108,7 +126,13 @@ internal class GrabPromptOverlay : MonoBehaviour
     private void EnsureStyles()
     {
         if (_style != null) return;
-        _style = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-        _style.normal.textColor = new Color(1f, 0.85f, 0.3f); // gold, matches overlay/wheel accents
+        _style = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 14,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter,
+            richText = true, // vanilla-tooltip look: orange action + white [button]
+        };
+        _style.normal.textColor = Color.white;
     }
 }
