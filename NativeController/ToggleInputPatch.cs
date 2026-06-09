@@ -27,6 +27,7 @@ internal static class ToggleInputPatch
         if (__result || !Plugin.Enabled.Value || Gamepad.current == null) return;
         if (key == InputKey.Sprint && Plugin.SprintToggle.Value) __result = true;
         else if (key == InputKey.Grab && Plugin.GrabToggle.Value) __result = true;
+        else if (key == InputKey.Crouch && Plugin.CrouchToggle.Value) __result = true;
     }
 
     // Cancel the sprint toggle the moment the player stops moving. 'moving' is the game's
