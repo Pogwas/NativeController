@@ -19,7 +19,6 @@ internal static class ToggleInputPatch
         AccessTools.FieldRefAccess<PlayerController, bool>("toggleSprint");
 
     private static bool _movedSinceToggle; // don't cancel before the sprint actually started
-    private static float _stopGrace;
 
     [HarmonyPatch(typeof(InputManager), nameof(InputManager.InputToggleGet))]
     [HarmonyPostfix]
@@ -30,11 +29,11 @@ internal static class ToggleInputPatch
         else if (key == InputKey.Grab && Plugin.GrabToggle.Value) __result = true;
     }
 
-    // Cancel the sprint toggle once the player stops moving. 'moving' is the game's own
-    // velocity-based flag (PlayerController.cs:863-876, already 0.1s-debounced); the grace
-    // adds slack for wall bumps and landings. Cancellation only arms after the player has
-    // actually moved while toggled, so pressing Sprint while standing still doesn't
-    // immediately untoggle before they take their first step.
+    // Cancel the sprint toggle the moment the player stops moving. 'moving' is the game's
+    // own velocity-based flag (PlayerController.cs:863-876) and already carries a built-in
+    // 0.1s debounce, so no extra grace is needed (user removed it 2026-06-09). Cancellation
+    // only arms after the player has actually moved while toggled, so pressing Sprint while
+    // standing still doesn't immediately untoggle before they take their first step.
     [HarmonyPatch(typeof(PlayerController), "FixedUpdate")]
     [HarmonyPostfix]
     private static void FixedUpdatePostfix(PlayerController __instance)
@@ -43,24 +42,17 @@ internal static class ToggleInputPatch
         if (!ToggleSprintRef(__instance))
         {
             _movedSinceToggle = false;
-            _stopGrace = 0f;
             return;
         }
 
         if (__instance.moving)
         {
             _movedSinceToggle = true;
-            _stopGrace = 0f;
             return;
         }
         if (!_movedSinceToggle) return;
 
-        _stopGrace += Time.fixedDeltaTime;
-        if (_stopGrace >= Plugin.SprintStopGraceSeconds.Value)
-        {
-            ToggleSprintRef(__instance) = false;
-            _movedSinceToggle = false;
-            _stopGrace = 0f;
-        }
+        ToggleSprintRef(__instance) = false;
+        _movedSinceToggle = false;
     }
 }
