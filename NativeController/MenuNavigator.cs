@@ -448,6 +448,7 @@ internal class MenuNavigator : MonoBehaviour
     {
         if (!Plugin.Enabled.Value || Gamepad.current == null) return;
         if (!MenuOpen(out _)) return;
+        if (!ControllerActive) return; // hint follows actual input: pad shows it, mouse hides it
         if (_style == null) _style = new GUIStyle(GUI.skin.label) { fontSize = 18, fontStyle = FontStyle.Bold };
 
         var k = ControllerDetect.Current;
