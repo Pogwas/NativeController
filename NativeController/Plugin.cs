@@ -25,6 +25,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> InvertY;
     internal static ConfigEntry<float> StickDeadzone;
     internal static ConfigEntry<float> MenuCursorSpeed;
+    internal static ConfigEntry<bool> EmoteWheelEnabled;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
     internal static ConfigEntry<bool> AimAssistItems;
@@ -43,6 +44,7 @@ public class Plugin : BaseUnityPlugin
     private static GameObject _menuNavGO;
     private static GameObject _overlayGO;
     private static GameObject _aimAssistGO;
+    private static GameObject _emoteWheelGO;
 
     private void Awake()
     {
@@ -61,6 +63,8 @@ public class Plugin : BaseUnityPlugin
             new ConfigDescription("Right-stick deadzone (ignore small movements).", new AcceptableValueRange<float>(0f, 0.6f)));
         MenuCursorSpeed = Config.Bind("Gamepad", "MenuCursorSpeed", 12f,
             new ConfigDescription("Left-stick cursor speed when navigating menus.", new AcceptableValueRange<float>(1f, 50f)));
+        EmoteWheelEnabled = Config.Bind("Emote Wheel", "Enabled", true,
+            "Hold D-pad Down in-game to open an emote wheel (right stick to pick, release to toggle the expression on/off).");
 
         AimAssistEnabled = Config.Bind("Aim Assist", "Enabled", true,
             "Master toggle for aim assist (gently nudges your view toward items, and toward enemies when a weapon/staff is held).");
@@ -125,5 +129,12 @@ public class Plugin : BaseUnityPlugin
             DontDestroyOnLoad(_aimAssistGO);
             Log.LogDebug("[Gamepad] AimAssist (re)created.");
         }
+        if (_emoteWheelGO == null)
+        {
+            _emoteWheelGO = new GameObject("NativeController.EmoteWheel", typeof(EmoteWheel));
+            DontDestroyOnLoad(_emoteWheelGO);
+            Log.LogDebug("[Gamepad] EmoteWheel (re)created.");
+        }
+        EmoteWheel.ResetState(); // every scene load: forget toggled faces, refresh labels
     }
 }
