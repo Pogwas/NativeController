@@ -78,12 +78,16 @@ internal class EmoteWheel : MonoBehaviour
         DriveActiveExpressions();
     }
 
-    // Recenter the game's face-preview widget (PlayerExpressionsUI) into the middle of the wheel.
-    // SemiUI recomputes the widget's localPosition every frame in Update, so a LateUpdate write
-    // wins the frame while we're overriding and vanilla position resumes by itself the frame
-    // after we stop — no restore bookkeeping. While the wheel is open the widget is also
-    // force-shown, acting as a live mirror; after a pick it lingers centered briefly so the
-    // face change is visible at the wheel, not at the half-clipped vanilla spot by the inventory.
+    // Recenter the game's face-preview widget (PlayerExpressionsUI) into the middle of the wheel
+    // via the game's OWN repositioning seam. Screen-pixel / RectTransformUtility math does NOT
+    // work here: REPO's HUD is a world-space 712x400-unit canvas filmed by an orthographic
+    // camera into a RenderTexture (the retro look), so screen coordinates are ~2.7x too large
+    // and there is no screen-facing camera to convert with. Vanilla moves SemiUI widgets with
+    // SemiUIScoot(offset) — an additive canvas-local offset, re-armed every frame (0.2s
+    // keep-alive), that eases back to the authored home automatically once we stop calling it.
+    // While the wheel is open the widget is also force-shown (live mirror); after a pick it
+    // lingers centered briefly so the face change is visible at the wheel, not half-clipped
+    // down by the inventory.
     private void LateUpdate()
     {
         bool overridePos = Open || _centerLinger > 0f;
@@ -91,23 +95,26 @@ internal class EmoteWheel : MonoBehaviour
         if (!overridePos) return;
 
         var ui = PlayerExpressionsUI.instance;
-        if (ui == null) return;
+        var hud = HUDCanvas.instance;
+        if (ui == null || hud == null) return;
         if (Open) ui.Show(); // live mirror while the wheel is up
 
-        var rt = ui.GetComponent<RectTransform>();
-        if (rt == null) return;
-        var canvas = ui.GetComponentInParent<Canvas>();
-        Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
-            ? canvas.worldCamera
-            : null;
-        // World-position write: anchor- and pivot-agnostic. (A localPosition write is measured
-        // from the widget's own anchor — bottom, by the inventory — so converting the screen
-        // center to parent-local space cancels out and the widget never visibly moves.)
-        var screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
-        if (RectTransformUtility.ScreenPointToWorldPointInRectangle(rt, screenCenter, cam, out Vector3 world))
-        {
-            rt.position = world;
-        }
+        var hudRect = hud.GetComponent<RectTransform>();
+        if (hudRect == null) return;
+
+        // The transform SemiUI repositions each frame (SemiUI.UpdatePositionLogic): the whole
+        // object when animateTheEntireObject, else its textRectTransform.
+        Transform moved = ui.animateTheEntireObject || ui.textRectTransform == null
+            ? ui.transform
+            : ui.textRectTransform;
+        var parent = moved.parent;
+        if (parent == null) return;
+
+        // HUD-canvas center expressed in the moved transform's parent-local space — the exact
+        // space SemiUI's localPosition writes (and showPosition, the authored home) live in.
+        Vector3 centerWorld = hudRect.TransformPoint(hudRect.rect.center);
+        Vector2 desiredLocal = parent.InverseTransformPoint(centerWorld);
+        ui.SemiUIScoot(desiredLocal - ui.showPosition);
     }
 
     private static void DriveActiveExpressions()
