@@ -29,9 +29,9 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 | Interact | X | □ (Square) |
 | Tumble | B | ○ (Circle) |
 | Map | Y | △ (Triangle) |
-| Sprint | L3 (left stick click) | L3 (left stick click) |
+| Sprint (press to toggle — stops on empty stamina / standing still) | L3 (left stick click) | L3 (left stick click) |
 | Crouch | R3 (right stick click) | R3 (right stick click) |
-| Grab | RT | R2 |
+| Grab (press to toggle — press again to let go) | RT | R2 |
 | Rotate held object | LT (hold) | L2 (hold) |
 | Pull / Push (held) | LB / RB | L1 / R1 |
 | Inventory slots 1 / 2 / 3 | D-pad ← ↑ → | D-pad ← ↑ → |
