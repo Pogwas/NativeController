@@ -18,6 +18,7 @@ internal static class LookPatch
     public static void GetMouseXPostfix(ref float __result)
     {
         if (!Plugin.Enabled.Value) return;
+        if (EmoteWheel.Open) return; // wheel open: stick is selecting an emote, not looking
 
         // 1) Right-stick look (existing behaviour) — counts as the player's own input for the clamp.
         var gp = Gamepad.current;
@@ -52,6 +53,7 @@ internal static class LookPatch
     public static void GetMouseYPostfix(ref float __result)
     {
         if (!Plugin.Enabled.Value) return;
+        if (EmoteWheel.Open) return; // wheel open: stick is selecting an emote, not looking
 
         var gp = Gamepad.current;
         if (gp != null)

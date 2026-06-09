@@ -21,23 +21,24 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 
 ## Default controls
 
-| Input | Action |
-|---|---|
-| Left stick | Move |
-| Right stick | Look |
-| A | Jump |
-| X | Interact |
-| B | Tumble |
-| Y | Map |
-| L3 (left stick click) | Sprint |
-| R3 (right stick click) | Crouch |
-| RT | Grab |
-| LT (hold) | Rotate held object |
-| LB / RB | Pull / Push (held) |
-| D-pad ← ↑ → | Inventory slots 1 / 2 / 3 |
-| Start | Pause menu |
-| Back | Chat |
-| D-pad ↓ (hold, in game) | Show the Controller Layout overlay |
+| Action | Xbox | PlayStation |
+|---|---|---|
+| Move | Left stick | Left stick |
+| Look | Right stick | Right stick |
+| Jump | A | ✕ (Cross) |
+| Interact | X | □ (Square) |
+| Tumble | B | ○ (Circle) |
+| Map | Y | △ (Triangle) |
+| Sprint (press to toggle — stops on empty stamina / standing still) | L3 (left stick click) | L3 (left stick click) |
+| Crouch | R3 (right stick click) | R3 (right stick click) |
+| Grab (press to toggle — press again to let go) | RT | R2 |
+| Rotate held object | LT (hold) | L2 (hold) |
+| Pull / Push (held) | LB / RB | L1 / R1 |
+| Inventory slots 1 / 2 / 3 | D-pad ← ↑ → | D-pad ← ↑ → |
+| Pause menu | Start | Options |
+| Chat | Back | Create |
+| Emote wheel (right stick picks, release toggles) | D-pad ↓ (hold, in game) | D-pad ↓ (hold, in game) |
+| Show the Controller Layout overlay | Settings menu | Settings menu |
 
 ## Installation
 
