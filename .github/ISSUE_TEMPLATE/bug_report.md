@@ -27,7 +27,7 @@ attach one, say so explicitly in the "BepInEx log excerpt" section.
 
 ## Controller used
 
-<!-- e.g. Xbox Series pad, DualSense, Switch Pro, Steam Deck built-in. And: wired or Bluetooth? Is Steam Input on or off for R.E.P.O.? -->
+<!-- e.g. Xbox Series pad, DualSense, Switch Pro. And: wired or Bluetooth? Is Steam Input on or off for R.E.P.O.? -->
 
 
 ## R.E.P.O. game version

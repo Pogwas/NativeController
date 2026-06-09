@@ -1,6 +1,6 @@
 # Native Controller
 
-Full controller support for [R.E.P.O.](https://store.steampowered.com/app/3241660/REPO/) (Semiwork, 2025) — built the **native** way. Instead of faking keyboard and mouse presses like other controller mods, Native Controller binds your gamepad **directly into the game's own input system**, so the game treats the pad as a real controller. No emulation jank, no double-input, and it just works on the Steam Deck.
+Full controller support for [R.E.P.O.](https://store.steampowered.com/app/3241660/REPO/) (Semiwork, 2025) — built the **native** way. Instead of faking keyboard and mouse presses like other controller mods, Native Controller binds your gamepad **directly into the game's own input system**, so the game treats the pad as a real controller. No emulation jank, no double-input.
 
 Every setting is exposed as a config entry. Tune to taste.
 
@@ -46,7 +46,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 3. *(Optional)* Install [MenuLib](https://thunderstore.io/c/repo/p/nickklmao/MenuLib/) to get the "Controller Layout" button in the Settings menu.
 4. Launch the game once to generate `BepInEx/config/com.pogwas.nativecontroller.cfg`, then edit it to taste — or use [REPOConfig](https://thunderstore.io/c/repo/p/nickklmao/REPOConfig/) for an in-game UI.
 
-> **Steam Deck / Steam Input:** Native Controller reads the pad through the Unity Input System, so set R.E.P.O.'s controller layout to a plain **Gamepad** template (not a keyboard/mouse layout) so the Deck presents as a raw gamepad.
+> **Steam Input:** Native Controller reads the pad through the Unity Input System. If you launch R.E.P.O. through Steam Input, set its controller layout to a plain **Gamepad** template (not a keyboard/mouse layout) so the pad comes through as a raw gamepad.
 
 ## Configuration sections
 
