@@ -19,6 +19,15 @@ internal class EmoteWheel : MonoBehaviour
     private static readonly AccessTools.FieldRef<ChatManager, bool> ChatActiveRef =
         AccessTools.FieldRefAccess<ChatManager, bool>("chatActive");
 
+    // Vanilla's local-side expression driver. The public PlayerAvatar.PlayerExpressionSet API only
+    // feeds the REMOTE-avatar dict (PlayerExpression.Update reads it in the !isLocal branch), so it
+    // is invisible to yourself — especially in solo. DoExpression is the path the keyboard keys use:
+    // it animates the local face, pops the on-screen face-preview UI, and syncs to MP internally.
+    // Signature: DoExpression(int _index, float _percent, bool _playerInput = false)
+    private static readonly Action<PlayerExpression, int, float, bool> DoExpression =
+        AccessTools.MethodDelegate<Action<PlayerExpression, int, float, bool>>(
+            AccessTools.Method(typeof(PlayerExpression), "DoExpression"));
+
     internal static bool Open; // read by LookPatch to suppress stick look + aim assist
 
     private const int SegmentCount = 6;
@@ -58,6 +67,34 @@ internal class EmoteWheel : MonoBehaviour
             Close();
             if (pick != 0) ToggleExpression(pick);
         }
+
+        // Vanilla toggle semantics: actively-toggled expressions must be driven EVERY frame
+        // (each DoExpression call only keeps the face alive for 0.2s; when we stop calling,
+        // vanilla auto-resets the face and syncs the stop to MP). Same loop vanilla runs for
+        // its own toggle list (PlayerExpression.cs:488-494).
+        DriveActiveExpressions();
+    }
+
+    private static void DriveActiveExpressions()
+    {
+        if (Active.Count == 0) return;
+        var avatar = PlayerAvatar.instance;
+        if (avatar == null || avatar.playerExpression == null) return;
+        try
+        {
+            foreach (int index in Active)
+            {
+                DoExpression(avatar.playerExpression, index, 100f, false);
+            }
+        }
+        catch (Exception e)
+        {
+            if (!_warned)
+            {
+                Plugin.Log.LogWarning($"[EmoteWheel] DoExpression failed: {e.Message}");
+                _warned = true;
+            }
+        }
     }
 
     private void Close()
@@ -89,17 +126,23 @@ internal class EmoteWheel : MonoBehaviour
     private static void ToggleExpression(int index)
     {
         var avatar = PlayerAvatar.instance;
-        if (avatar == null) return;
+        if (avatar == null || avatar.playerExpression == null) return;
         try
         {
             if (Active.Remove(index))
             {
-                avatar.PlayerExpressionStop(index);
+                // Just stop driving it — vanilla auto-resets the face 0.2s after the last
+                // DoExpression call and syncs the stop to MP itself (ResetExpressions).
+                Plugin.Log.LogInfo($"[EmoteWheel] Expression {index} OFF"); // TODO: downgrade to LogDebug after playtest
             }
             else
             {
-                avatar.PlayerExpressionSet(index, 100f);
+                // _playerInput: true on the first call pops the face-preview UI wide open
+                // (ShrinkReset), exactly like a vanilla keyboard press. Steady-state frames
+                // are driven by DriveActiveExpressions with _playerInput: false.
+                DoExpression(avatar.playerExpression, index, 100f, true);
                 Active.Add(index);
+                Plugin.Log.LogInfo($"[EmoteWheel] Expression {index} ON"); // TODO: downgrade to LogDebug after playtest
             }
         }
         catch (Exception e)
