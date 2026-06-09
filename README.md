@@ -1,0 +1,76 @@
+# Native Controller
+
+Full controller support for [R.E.P.O.](https://store.steampowered.com/app/3241660/REPO/) (Semiwork, 2025) — built the **native** way. Instead of faking keyboard and mouse presses like other controller mods, Native Controller binds your gamepad **directly into the game's own input system**, so the game treats the pad as a real controller. No emulation jank, no double-input, and it just works on the Steam Deck.
+
+Every setting is exposed as a config entry. Tune to taste.
+
+## Why "native"?
+
+Other R.E.P.O. controller mods *emulate* — under the hood they translate your gamepad into fake keyboard/mouse events. Native Controller doesn't: it registers the gamepad into R.E.P.O.'s own `InputManager` actions. So the game's own sensitivity applies to your look, analog inputs stay analog (e.g. **holdable** push/pull instead of discrete scroll ticks), and there's no desync with a real keyboard/mouse.
+
+## Features
+
+- **Native gamepad binding** — your controller plugs straight into the game's input, not a keyboard/mouse emulation layer.
+- **Right-stick look** with configurable speed, invert, and deadzone.
+- **Full menu navigation** — move with the D-pad / left stick, A to confirm, B to back. Works in the vanilla menus *and* REPOConfig's mod menu (sliders, scrolling lists, tabs).
+- **Controller Layout overlay** — an in-game cheat-sheet of the button map; hold D-pad Down in game, or open it from a button added to the Settings menu (needs MenuLib).
+- **Kind-aware button glyphs** — prompts show the right icons for Xbox, PlayStation, or Switch controllers (auto-detected).
+- **Holdable push/pull on the bumpers** — LB/RB drive the grab beam's push/pull as a real held input.
+- **Aim assist** — an optional, gentle nudge toward grabbable items (when close) and enemies (when a weapon or staff is in hand). It's a bounded correction added to your own look — it never overpowers your turn or locks on. Fully configurable, off-switchable.
+- **Splash-screen skip** — a controller button skips the intro logos.
+
+## Default controls
+
+| Input | Action |
+|---|---|
+| Left stick | Move |
+| Right stick | Look |
+| A | Jump |
+| X | Interact |
+| B | Tumble |
+| Y | Map |
+| L3 (left stick click) | Sprint |
+| R3 (right stick click) | Crouch |
+| RT | Grab |
+| LT (hold) | Rotate held object |
+| LB / RB | Pull / Push (held) |
+| D-pad ← ↑ → | Inventory slots 1 / 2 / 3 |
+| Start | Pause menu |
+| Back | Chat |
+| D-pad ↓ (hold, in game) | Show the Controller Layout overlay |
+
+## Installation
+
+1. Install [BepInEx 5.4](https://thunderstore.io/c/repo/p/BepInEx/BepInExPack/) for R.E.P.O.
+2. Drop `NativeController.dll` into `BepInEx/plugins/`.
+3. *(Optional)* Install [MenuLib](https://thunderstore.io/c/repo/p/nickklmao/MenuLib/) to get the "Controller Layout" button in the Settings menu.
+4. Launch the game once to generate `BepInEx/config/com.pogwas.nativecontroller.cfg`, then edit it to taste — or use [REPOConfig](https://thunderstore.io/c/repo/p/nickklmao/REPOConfig/) for an in-game UI.
+
+> **Steam Deck / Steam Input:** Native Controller reads the pad through the Unity Input System, so set R.E.P.O.'s controller layout to a plain **Gamepad** template (not a keyboard/mouse layout) so the Deck presents as a raw gamepad.
+
+## Configuration sections
+
+| Section | What it controls |
+|---|---|
+| `Gamepad` | Master toggle, right-stick look speed (X/Y), invert-Y, stick deadzone, menu cursor speed |
+| `Aim Assist` | Toggle + item/enemy toggles, and the bounded-nudge tuning: Gain, MaxFraction (the no-lock cap), MaxDegPerFrame, IdleDrift, ActiveThreshold, MaxAngle (cone), ItemRange, EnemyRange, DeadZone |
+
+## Bug reports
+
+Please open an [Issue](https://github.com/Pogwas/NativeController/issues) and include:
+
+- R.E.P.O. game version
+- Mod version
+- Your `BepInEx/LogOutput.log` (or the relevant ~50 lines around the bug)
+- Other plugins installed
+- Steps to reproduce
+
+## Changelog
+
+### 0.1.0
+
+- Initial release. Native gamepad binding, right-stick look, full button mapping, menu navigation (vanilla + REPOConfig), Controller Layout overlay, kind-aware glyphs (Xbox / PlayStation / Switch), holdable push/pull on the bumpers, configurable aim assist, and splash-screen skip.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
