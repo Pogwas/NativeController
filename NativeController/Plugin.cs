@@ -167,5 +167,6 @@ public class Plugin : BaseUnityPlugin
             Log.LogDebug("[Gamepad] GrabPromptOverlay (re)created.");
         }
         EmoteWheel.ResetState(); // every scene load: forget toggled faces, refresh labels
+        ControllerDetect.ResetLevelTouch(); // inventory arrows wait for the first pad touch per level
     }
 }

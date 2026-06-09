@@ -38,7 +38,7 @@ internal class GrabPromptOverlay : MonoBehaviour
     private readonly Vector3[] _corners = new Vector3[4]; // scratch
 
     // Per-slot screen-space data from the locate pass (UI coords, y-up).
-    private struct SlotScreen { public int Index; public float CenterX; public float TopY; }
+    private struct SlotScreen { public int Index; public float CenterX; public float CenterY; }
     private readonly SlotScreen[] _slotScreens = new SlotScreen[8];
     private int _slotScreenCount;
 
@@ -55,7 +55,9 @@ internal class GrabPromptOverlay : MonoBehaviour
         var mm = MenuManager.instance;
         if (mm != null && MenuStateRef(mm) == (int)MenuManager.MenuState.Open) return;
 
-        _showArrows = Plugin.InventoryArrows.Value; // shares all gates above, not the aim state
+        // Shares all gates above (not the aim state); additionally waits for the first real
+        // pad input this level so the arrows don't pop before the controller is in use.
+        _showArrows = Plugin.InventoryArrows.Value && ControllerDetect.PadTouchedThisLevel;
 
         var aim = Aim.instance;
         if (aim == null) return;
@@ -160,10 +162,10 @@ internal class GrabPromptOverlay : MonoBehaviour
                 case 2: arrow = ButtonNames.Of(ButtonNames.Control.DpadRight, kind); break;
                 default: continue;
             }
-            const float chipW = 22f, chipH = 22f, gap = 4f;
+            const float chipW = 34f, chipH = 34f;
             var rect = new Rect(
                 _slotScreens[i].CenterX - chipW / 2f,
-                Screen.height - _slotScreens[i].TopY - gap - chipH,
+                Screen.height - _slotScreens[i].CenterY - chipH / 2f, // centered ON the slot
                 chipW, chipH);
             GUI.color = new Color(0.08f, 0.08f, 0.08f, 0.85f);
             GUI.DrawTexture(rect, Texture2D.whiteTexture);
@@ -231,7 +233,8 @@ internal class GrabPromptOverlay : MonoBehaviour
             var rt = spot.transform as RectTransform;
             if (rt == null) continue;
             rt.GetWorldCorners(_corners);
-            float slotMinX = float.MaxValue, slotMaxX = float.MinValue, slotMaxY = float.MinValue;
+            float slotMinX = float.MaxValue, slotMaxX = float.MinValue;
+            float slotMinY = float.MaxValue, slotMaxY = float.MinValue;
             for (int c = 0; c < 4; c++)
             {
                 Vector3 vp = overlayCam.WorldToViewportPoint(_corners[c]);
@@ -241,6 +244,7 @@ internal class GrabPromptOverlay : MonoBehaviour
                 if (sx > maxX) maxX = sx;
                 if (sx < slotMinX) slotMinX = sx;
                 if (sx > slotMaxX) slotMaxX = sx;
+                if (sy < slotMinY) slotMinY = sy;
                 if (sy > slotMaxY) slotMaxY = sy;
                 ySum += sy;
             }
@@ -250,7 +254,7 @@ internal class GrabPromptOverlay : MonoBehaviour
                 {
                     Index = spot.inventorySpotIndex,
                     CenterX = (slotMinX + slotMaxX) / 2f,
-                    TopY = slotMaxY,
+                    CenterY = (slotMinY + slotMaxY) / 2f,
                 };
             }
             found++;
@@ -271,7 +275,7 @@ internal class GrabPromptOverlay : MonoBehaviour
             richText = true, // vanilla-tooltip look: orange action + white [button]
         };
         _style.normal.textColor = Color.white;
-        _arrowStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+        _arrowStyle = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         _arrowStyle.normal.textColor = new Color(1f, 0.85f, 0.3f); // gold accent
     }
 }

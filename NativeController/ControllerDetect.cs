@@ -20,6 +20,16 @@ internal static class ControllerDetect
     internal static bool PadActive { get; private set; }
     private static bool _padActiveInit;
 
+    // True once the player has ACTUALLY touched the pad this level (unlike PadActive, which
+    // starts true when a pad is merely present). Used to delay teaching prompts until the
+    // controller is in use. Reset per level by Plugin.OnSceneLoaded.
+    internal static bool PadTouchedThisLevel { get; private set; }
+
+    internal static void ResetLevelTouch()
+    {
+        PadTouchedThisLevel = false;
+    }
+
     // Called once per frame (GrabPromptOverlay.Update) — cheap polling, no events needed.
     internal static void TrackActiveInput()
     {
@@ -49,6 +59,7 @@ internal static class ControllerDetect
         if (padInput)
         {
             PadActive = true;
+            PadTouchedThisLevel = true;
             return;
         }
 
