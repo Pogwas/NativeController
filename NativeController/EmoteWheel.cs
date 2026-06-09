@@ -96,16 +96,17 @@ internal class EmoteWheel : MonoBehaviour
 
         var rt = ui.GetComponent<RectTransform>();
         if (rt == null) return;
-        var parent = rt.parent as RectTransform;
-        if (parent == null) return;
         var canvas = ui.GetComponentInParent<Canvas>();
         Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
             ? canvas.worldCamera
             : null;
+        // World-position write: anchor- and pivot-agnostic. (A localPosition write is measured
+        // from the widget's own anchor — bottom, by the inventory — so converting the screen
+        // center to parent-local space cancels out and the widget never visibly moves.)
         var screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screenCenter, cam, out Vector2 local))
+        if (RectTransformUtility.ScreenPointToWorldPointInRectangle(rt, screenCenter, cam, out Vector3 world))
         {
-            rt.localPosition = new Vector3(local.x, local.y, rt.localPosition.z);
+            rt.position = world;
         }
     }
 
