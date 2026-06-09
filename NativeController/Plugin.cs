@@ -23,6 +23,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> LookSpeedX;
     internal static ConfigEntry<float> LookSpeedY;
     internal static ConfigEntry<bool> InvertY;
+    internal static ConfigEntry<bool> InvertX;
     internal static ConfigEntry<float> StickDeadzone;
     internal static ConfigEntry<float> MenuCursorSpeed;
     internal static ConfigEntry<bool> EmoteWheelEnabled;
@@ -68,6 +69,7 @@ public class Plugin : BaseUnityPlugin
         LookSpeedY = Config.Bind("Gamepad", "LookSpeedY", 1.0f,
             new ConfigDescription("Right-stick vertical camera speed.", new AcceptableValueRange<float>(0.1f, 20f)));
         InvertY = Config.Bind("Gamepad", "InvertY", false, "Invert right-stick vertical look.");
+        InvertX = Config.Bind("Gamepad", "InvertX", false, "Invert right-stick horizontal look.");
         StickDeadzone = Config.Bind("Gamepad", "StickDeadzone", 0.15f,
             new ConfigDescription("Right-stick deadzone (ignore small movements).", new AcceptableValueRange<float>(0f, 0.6f)));
         MenuCursorSpeed = Config.Bind("Gamepad", "MenuCursorSpeed", 12f,
