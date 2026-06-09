@@ -105,11 +105,9 @@ internal class EmoteWheel : MonoBehaviour
 
         var ui = PlayerExpressionsUI.instance;
         if (ui == null) return;
-        if (Open)
-        {
-            ui.Show();        // keep the preview visible while the wheel is up
-            ui.ShrinkReset(); // full size (1.0) + full alpha, instead of the idle 0.7/0.35 look
-        }
+        // No force-Show here: the preview appears only when vanilla shows it (while a face
+        // is active) — user preference 2026-06-09. We only adjust the camera framing so the
+        // face is visible when it does pop up after a pick.
 
         // The preview stays at its vanilla spot (UI repositioning fought the prefab layout —
         // the widget is *designed* to peek over the screen's bottom edge). Instead, reframe
@@ -157,11 +155,22 @@ internal class EmoteWheel : MonoBehaviour
         if (Active.Count == 0) return;
         var avatar = PlayerAvatar.instance;
         if (avatar == null || avatar.playerExpression == null) return;
+        // The HUD face preview is a SEPARATE miniature avatar with its own PlayerExpression —
+        // in vanilla, both components independently poll the keyboard keys, so driving only
+        // the real avatar leaves the preview's face frozen. Drive the preview via its public
+        // OverrideExpressionSet, the same way the game's Boombox does (ValuableBoombox.cs:97).
+        var previewExpression = PlayerExpressionsUI.instance != null
+            ? PlayerExpressionsUI.instance.playerExpression
+            : null;
         try
         {
             foreach (int index in Active)
             {
                 DoExpression(avatar.playerExpression, index, 100f, false);
+                if (previewExpression != null)
+                {
+                    previewExpression.OverrideExpressionSet(index, 100f);
+                }
             }
         }
         catch (Exception e)
