@@ -2,7 +2,7 @@ using HarmonyLib;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // Adds right-stick camera movement on top of the game's mouse-delta look, AND injects the aim-assist
 // correction as a bounded additive look-delta. The correction is in the SAME unit as __result (input

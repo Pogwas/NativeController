@@ -1,7 +1,7 @@
 using System.Reflection;
 using HarmonyLib;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // While the controller is the active menu input, force the game to highlight the controller-selected
 // button (and de-highlight the rest), using the game's OWN methods: set the hover flag, force the text

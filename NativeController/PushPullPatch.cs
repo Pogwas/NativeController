@@ -1,7 +1,7 @@
 using HarmonyLib;
 using UnityEngine.InputSystem;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // The game reads Push/Pull as a 2D scroll axis (InputKey.Push/Pull default to <Mouse>/scroll/y and are
 // read via ReadValue<Vector2>().y), so a plain gamepad button binding can't drive them. Instead inject the

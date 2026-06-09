@@ -6,7 +6,7 @@ using HarmonyLib;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
 [BepInDependency("nickklmao.menulib", BepInDependency.DependencyFlags.SoftDependency)]
@@ -109,19 +109,19 @@ public class Plugin : BaseUnityPlugin
     {
         if (_menuNavGO == null)
         {
-            _menuNavGO = new GameObject("ControllerSupport.MenuNav", typeof(MenuNavigator));
+            _menuNavGO = new GameObject("NativeController.MenuNav", typeof(MenuNavigator));
             DontDestroyOnLoad(_menuNavGO);
             Log.LogDebug("[Gamepad] MenuNavigator (re)created.");
         }
         if (_overlayGO == null)
         {
-            _overlayGO = new GameObject("ControllerSupport.LayoutOverlay", typeof(ControllerLayoutOverlay));
+            _overlayGO = new GameObject("NativeController.LayoutOverlay", typeof(ControllerLayoutOverlay));
             DontDestroyOnLoad(_overlayGO);
             Log.LogDebug("[Gamepad] ControllerLayoutOverlay (re)created.");
         }
         if (_aimAssistGO == null)
         {
-            _aimAssistGO = new GameObject("ControllerSupport.AimAssist", typeof(AimAssist));
+            _aimAssistGO = new GameObject("NativeController.AimAssist", typeof(AimAssist));
             DontDestroyOnLoad(_aimAssistGO);
             Log.LogDebug("[Gamepad] AimAssist (re)created.");
         }

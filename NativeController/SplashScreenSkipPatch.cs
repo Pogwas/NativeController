@@ -3,7 +3,7 @@ using System.Reflection;
 using HarmonyLib;
 using UnityEngine.InputSystem;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // The opening SplashScreen skips on Input.anyKeyDown (legacy input), which doesn't see gamepad buttons
 // under the new Input System. This postfix lets a controller button skip it too, mirroring the game's

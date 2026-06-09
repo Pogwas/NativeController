@@ -3,7 +3,7 @@ using HarmonyLib;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // On-screen controller button reference. In-game (no menu open): shown while D-pad Down is held (D-pad
 // Down is unbound in gameplay). In a menu: toggled by the Settings-menu button (SettingsMenuEntry),

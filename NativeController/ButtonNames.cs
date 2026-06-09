@@ -1,4 +1,4 @@
-namespace ControllerSupport;
+namespace NativeController;
 
 // Kind-aware TEXT labels for physical controls (no image assets). Generic falls back to Xbox names.
 internal static class ButtonNames

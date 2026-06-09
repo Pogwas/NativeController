@@ -1,6 +1,6 @@
 using UnityEngine.InputSystem;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // Detects which kind of controller is active (for correct button prompts/glyphs later, and logging).
 // Updates on device add/remove. Classification is by device layout/product strings so it doesn't

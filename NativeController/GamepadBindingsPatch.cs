@@ -2,7 +2,7 @@ using System;
 using HarmonyLib;
 using UnityEngine.InputSystem;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // Postfix on InputManager.InitializeInputs: additively bind <Gamepad>/* controls onto the game's
 // own InputActions. Keyboard/mouse bindings are left intact (purely additive).

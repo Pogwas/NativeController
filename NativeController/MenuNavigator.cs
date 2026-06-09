@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // Standard console-style discrete menu navigation. Tracks a Selected button (D-pad / left stick move it
 // to the spatially-nearest button on the FOCUSED page). It does NOT move the cursor — instead, while the

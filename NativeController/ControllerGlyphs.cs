@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // The game's IMGUI font renders the PlayStation outline shapes (○ □ △) tiny from a fallback font, while
 // normal text and ✕ render full size. To make them match, draw just those three glyphs with a dynamic OS

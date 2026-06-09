@@ -1,7 +1,7 @@
 using MenuLib;
 using UnityEngine;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // Isolated so MenuLib types are only JIT-resolved when MenuLib is actually loaded — Plugin guards the
 // Register() call behind a Chainloader presence check, so when MenuLib is absent this type is never

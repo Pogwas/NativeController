@@ -1,7 +1,7 @@
 using HarmonyLib;
 using UnityEngine;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // REPO only scrolls a MenuScrollBox while the MOUSE is hovering it: MenuScrollBox.Update recomputes
 // scrollBoxActive from menuElementHover.isHovering each frame and early-returns if it's false, so the

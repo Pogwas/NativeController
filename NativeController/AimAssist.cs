@@ -1,7 +1,7 @@
 using HarmonyLib;
 using UnityEngine;
 
-namespace ControllerSupport;
+namespace NativeController;
 
 // Selects a soft aim-assist target (armed -> nearest enemy, else nearest grabbable item; cone+range+LOS)
 // with sticky-target hysteresis + point smoothing, and PUBLISHES it statically. The actual nudge is
