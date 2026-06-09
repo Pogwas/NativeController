@@ -29,15 +29,18 @@ internal class GrabPromptOverlay : MonoBehaviour
 
     private ControllerDetect.Kind _cachedKind = (ControllerDetect.Kind)(-1);
     private Prompt _grab, _letGo, _rotate, _climb;
-    private readonly Prompt[] _lines = new Prompt[2];
-    private int _lineCount;
+    private Prompt _rightLine; // RT family (GRAB / LET GO / CLIMB) — right of the inventory bar
+    private Prompt _leftLine;  // LT (ROTATE) — left of the inventory bar
     private GUIStyle _style;
+    private InventorySpot[] _spots; // the 3 hotbar slots; located lazily, revalidated when destroyed
+    private readonly Vector3[] _corners = new Vector3[4]; // scratch
 
     private void Update()
     {
         ControllerDetect.TrackActiveInput();       // gameplay-valid last-input-wins signal
         InputDisplayPatch.TickCacheInvalidation(); // vanilla [E]-tag cache follows input flips
-        _lineCount = 0;
+        _rightLine = default;
+        _leftLine = default;
         if (!Plugin.Enabled.Value || !Plugin.PromptsEnabled.Value) return;
         if (Gamepad.current == null || !ControllerDetect.PadActive) return;
         if (EmoteWheel.Open) return;
@@ -51,17 +54,17 @@ internal class GrabPromptOverlay : MonoBehaviour
         switch (_aimStateRef(aim))
         {
             case Aim.State.Grabbable:
-                _lines[_lineCount++] = _grab;
+                _rightLine = _grab;
                 break;
             case Aim.State.Grab:
             case Aim.State.Rotate:
                 // "Let go" only teaches the toggle-grab behavior; without the toggle,
                 // releasing the trigger lets go and the line would be wrong.
-                if (Plugin.GrabToggle.Value) _lines[_lineCount++] = _letGo;
-                _lines[_lineCount++] = _rotate;
+                if (Plugin.GrabToggle.Value) _rightLine = _letGo;
+                _leftLine = _rotate;
                 break;
             case Aim.State.Climbable:
-                _lines[_lineCount++] = _climb;
+                _rightLine = _climb;
                 break;
         }
     }
@@ -108,20 +111,97 @@ internal class GrabPromptOverlay : MonoBehaviour
 
     private void OnGUI()
     {
-        if (_lineCount == 0) return;
+        if (_rightLine.Plain == null && _leftLine.Plain == null) return;
         EnsureStyles();
-        float cx = Screen.width / 2f;
-        float y = Screen.height / 2f + 35f; // just below the crosshair
-        for (int i = 0; i < _lineCount; i++)
+
+        // Flank the inventory bar (user request 2026-06-09): RT prompts on its right,
+        // ROTATE on its left. Falls back to below-crosshair if the HUD pipeline isn't up.
+        if (TryInventoryScreenBounds(out float minX, out float maxX, out float centerY))
         {
-            Vector2 size = _style.CalcSize(new GUIContent(_lines[i].Plain));
-            var rect = new Rect(cx - (size.x + 18f) / 2f, y, size.x + 18f, 24f);
-            GUI.color = new Color(0.08f, 0.08f, 0.08f, 0.85f);
-            GUI.DrawTexture(rect, Texture2D.whiteTexture);
-            GUI.color = Color.white;
-            GUI.Label(rect, _lines[i].Rich, _style);
-            y += 28f;
+            float guiY = Screen.height - centerY; // UI coords are y-up; IMGUI is y-down
+            if (_rightLine.Plain != null) DrawChip(_rightLine, maxX + 14f, guiY, rightSide: true);
+            if (_leftLine.Plain != null) DrawChip(_leftLine, minX - 14f, guiY, rightSide: false);
+            return;
         }
+
+        float cx = Screen.width / 2f;
+        float y = Screen.height / 2f + 35f;
+        if (_rightLine.Plain != null) { DrawChipCentered(_rightLine, cx, y); y += 28f; }
+        if (_leftLine.Plain != null) DrawChipCentered(_leftLine, cx, y);
+    }
+
+    private void DrawChip(Prompt p, float anchorX, float guiCenterY, bool rightSide)
+    {
+        Vector2 size = _style.CalcSize(new GUIContent(p.Plain));
+        float w = size.x + 18f;
+        var rect = new Rect(rightSide ? anchorX : anchorX - w, guiCenterY - 12f, w, 24f);
+        GUI.color = new Color(0.08f, 0.08f, 0.08f, 0.85f);
+        GUI.DrawTexture(rect, Texture2D.whiteTexture);
+        GUI.color = Color.white;
+        GUI.Label(rect, p.Rich, _style);
+    }
+
+    private void DrawChipCentered(Prompt p, float cx, float y)
+    {
+        Vector2 size = _style.CalcSize(new GUIContent(p.Plain));
+        float w = size.x + 18f;
+        var rect = new Rect(cx - w / 2f, y, w, 24f);
+        GUI.color = new Color(0.08f, 0.08f, 0.08f, 0.85f);
+        GUI.DrawTexture(rect, Texture2D.whiteTexture);
+        GUI.color = Color.white;
+        GUI.Label(rect, p.Rich, _style);
+    }
+
+    // Screen-pixel bounds of the 3 inventory hotbar slots. HUD elements live on the
+    // world-space 712x400 HUD canvas (rendered through a RenderTexture — see Quirk 8), so
+    // the conversion is: HUD world position -> overlay camera viewport -> position within
+    // the composited overlay RawImage, whose corners ARE screen pixels (it sits on the
+    // final Screen Space - Overlay canvas).
+    private bool TryInventoryScreenBounds(out float minX, out float maxX, out float centerY)
+    {
+        minX = float.MaxValue;
+        maxX = float.MinValue;
+        centerY = 0f;
+
+        var overlay = CameraOverlay.instance;
+        var rtMain = RenderTextureMain.instance;
+        if (overlay == null || rtMain == null || rtMain.overlayRawImage == null) return false;
+        // CameraOverlay.overlayCamera is internal — same component, same GameObject.
+        var overlayCam = overlay.GetComponent<Camera>();
+        if (overlayCam == null) return false;
+
+        if (_spots == null || _spots.Length == 0 || _spots[0] == null)
+        {
+            _spots = FindObjectsOfType<InventorySpot>();
+            if (_spots.Length == 0) return false;
+        }
+
+        rtMain.overlayRawImage.rectTransform.GetWorldCorners(_corners);
+        Vector2 displayMin = _corners[0]; // overlay canvas is Screen Space - Overlay: world == px
+        Vector2 displayMax = _corners[2];
+
+        float ySum = 0f;
+        int found = 0;
+        foreach (var spot in _spots)
+        {
+            if (spot == null) continue;
+            var rt = spot.transform as RectTransform;
+            if (rt == null) continue;
+            rt.GetWorldCorners(_corners);
+            for (int c = 0; c < 4; c++)
+            {
+                Vector3 vp = overlayCam.WorldToViewportPoint(_corners[c]);
+                float sx = Mathf.Lerp(displayMin.x, displayMax.x, vp.x);
+                float sy = Mathf.Lerp(displayMin.y, displayMax.y, vp.y);
+                if (sx < minX) minX = sx;
+                if (sx > maxX) maxX = sx;
+                ySum += sy;
+            }
+            found++;
+        }
+        if (found == 0) return false;
+        centerY = ySum / (found * 4);
+        return true;
     }
 
     private void EnsureStyles()
