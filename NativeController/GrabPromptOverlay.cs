@@ -32,8 +32,15 @@ internal class GrabPromptOverlay : MonoBehaviour
     private Prompt _rightLine; // RT family (GRAB / LET GO / CLIMB) — right of the inventory bar
     private Prompt _leftLine;  // LT (ROTATE) — left of the inventory bar
     private GUIStyle _style;
+    private GUIStyle _arrowStyle;
+    private bool _showArrows; // D-pad arrows over the inventory slots (independent of aim state)
     private InventorySpot[] _spots; // the 3 hotbar slots; located lazily, revalidated when destroyed
     private readonly Vector3[] _corners = new Vector3[4]; // scratch
+
+    // Per-slot screen-space data from the locate pass (UI coords, y-up).
+    private struct SlotScreen { public int Index; public float CenterX; public float TopY; }
+    private readonly SlotScreen[] _slotScreens = new SlotScreen[8];
+    private int _slotScreenCount;
 
     private void Update()
     {
@@ -41,11 +48,15 @@ internal class GrabPromptOverlay : MonoBehaviour
         InputDisplayPatch.TickCacheInvalidation(); // vanilla [E]-tag cache follows input flips
         _rightLine = default;
         _leftLine = default;
+        _showArrows = false;
         if (!Plugin.Enabled.Value || !Plugin.PromptsEnabled.Value) return;
         if (Gamepad.current == null || !ControllerDetect.PadActive) return;
         if (EmoteWheel.Open) return;
         var mm = MenuManager.instance;
         if (mm != null && MenuStateRef(mm) == (int)MenuManager.MenuState.Open) return;
+
+        _showArrows = Plugin.InventoryArrows.Value; // shares all gates above, not the aim state
+
         var aim = Aim.instance;
         if (aim == null) return;
         if (!EnsureAimRef()) return;
@@ -111,23 +122,54 @@ internal class GrabPromptOverlay : MonoBehaviour
 
     private void OnGUI()
     {
-        if (_rightLine.Plain == null && _leftLine.Plain == null) return;
+        bool wantChips = _rightLine.Plain != null || _leftLine.Plain != null;
+        if (!wantChips && !_showArrows) return;
         EnsureStyles();
 
         // Flank the inventory bar (user request 2026-06-09): RT prompts on its right,
-        // ROTATE on its left. Falls back to below-crosshair if the HUD pipeline isn't up.
+        // ROTATE on its left; D-pad arrows above each slot. Falls back to below-crosshair
+        // chips (no arrows) if the HUD pipeline isn't up.
         if (TryInventoryScreenBounds(out float minX, out float maxX, out float centerY))
         {
+            if (_showArrows) DrawInventoryArrows();
             float guiY = Screen.height - centerY; // UI coords are y-up; IMGUI is y-down
             if (_rightLine.Plain != null) DrawChip(_rightLine, maxX + 14f, guiY, rightSide: true);
             if (_leftLine.Plain != null) DrawChip(_leftLine, minX - 14f, guiY, rightSide: false);
             return;
         }
+        if (!wantChips) return;
 
         float cx = Screen.width / 2f;
         float y = Screen.height / 2f + 35f;
         if (_rightLine.Plain != null) { DrawChipCentered(_rightLine, cx, y); y += 28f; }
         if (_leftLine.Plain != null) DrawChipCentered(_leftLine, cx, y);
+    }
+
+    // ← ↑ → above inventory slots 1/2/3 (InputKey.Inventory1/2/3 = D-pad Left/Up/Right;
+    // the game's own mapping at InventorySpot.cs:122-130).
+    private void DrawInventoryArrows()
+    {
+        var kind = ControllerDetect.Current;
+        for (int i = 0; i < _slotScreenCount; i++)
+        {
+            string arrow;
+            switch (_slotScreens[i].Index)
+            {
+                case 0: arrow = ButtonNames.Of(ButtonNames.Control.DpadLeft, kind); break;
+                case 1: arrow = ButtonNames.Of(ButtonNames.Control.DpadUp, kind); break;
+                case 2: arrow = ButtonNames.Of(ButtonNames.Control.DpadRight, kind); break;
+                default: continue;
+            }
+            const float chipW = 22f, chipH = 22f, gap = 4f;
+            var rect = new Rect(
+                _slotScreens[i].CenterX - chipW / 2f,
+                Screen.height - _slotScreens[i].TopY - gap - chipH,
+                chipW, chipH);
+            GUI.color = new Color(0.08f, 0.08f, 0.08f, 0.85f);
+            GUI.DrawTexture(rect, Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            ControllerGlyphs.DrawLabel(rect, arrow, _arrowStyle);
+        }
     }
 
     private void DrawChip(Prompt p, float anchorX, float guiCenterY, bool rightSide)
@@ -182,12 +224,14 @@ internal class GrabPromptOverlay : MonoBehaviour
 
         float ySum = 0f;
         int found = 0;
+        _slotScreenCount = 0;
         foreach (var spot in _spots)
         {
             if (spot == null) continue;
             var rt = spot.transform as RectTransform;
             if (rt == null) continue;
             rt.GetWorldCorners(_corners);
+            float slotMinX = float.MaxValue, slotMaxX = float.MinValue, slotMaxY = float.MinValue;
             for (int c = 0; c < 4; c++)
             {
                 Vector3 vp = overlayCam.WorldToViewportPoint(_corners[c]);
@@ -195,7 +239,19 @@ internal class GrabPromptOverlay : MonoBehaviour
                 float sy = Mathf.Lerp(displayMin.y, displayMax.y, vp.y);
                 if (sx < minX) minX = sx;
                 if (sx > maxX) maxX = sx;
+                if (sx < slotMinX) slotMinX = sx;
+                if (sx > slotMaxX) slotMaxX = sx;
+                if (sy > slotMaxY) slotMaxY = sy;
                 ySum += sy;
+            }
+            if (_slotScreenCount < _slotScreens.Length)
+            {
+                _slotScreens[_slotScreenCount++] = new SlotScreen
+                {
+                    Index = spot.inventorySpotIndex,
+                    CenterX = (slotMinX + slotMaxX) / 2f,
+                    TopY = slotMaxY,
+                };
             }
             found++;
         }
@@ -215,5 +271,7 @@ internal class GrabPromptOverlay : MonoBehaviour
             richText = true, // vanilla-tooltip look: orange action + white [button]
         };
         _style.normal.textColor = Color.white;
+        _arrowStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+        _arrowStyle.normal.textColor = new Color(1f, 0.85f, 0.3f); // gold accent
     }
 }

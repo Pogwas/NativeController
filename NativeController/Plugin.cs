@@ -31,6 +31,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> EmoteDurationSeconds;
     internal static ConfigEntry<bool> PromptsEnabled;
     internal static ConfigEntry<bool> ControllerKeyTags;
+    internal static ConfigEntry<bool> InventoryArrows;
     internal static ConfigEntry<bool> SprintToggle;
     internal static ConfigEntry<bool> GrabToggle;
 
@@ -83,6 +84,8 @@ public class Plugin : BaseUnityPlugin
             "Show controller prompts near the crosshair (Grab when aiming at a grabbable, Let go / Rotate while holding, Climb when tumbling at a wall). Only shown while the controller is the active input.");
         ControllerKeyTags = Config.Bind("Prompts", "ControllerKeyTags", true,
             "Show controller buttons inside the game's own key hints (e.g. SHOTGUN [X] instead of [E]) while the controller is the active input.");
+        InventoryArrows = Config.Bind("Prompts", "InventoryArrows", true,
+            "Show which D-pad arrow equips which inventory slot (← ↑ → above the three slots). Only while the controller is the active input.");
         SprintToggle = Config.Bind("Gamepad", "ToggleSprint", true,
             "Press Sprint (L3) once to keep sprinting; it stops when stamina runs out, you stop moving, or you press it again. Applies while a gamepad is connected (also affects keyboard Sprint).");
         GrabToggle = Config.Bind("Gamepad", "ToggleGrab", true,
