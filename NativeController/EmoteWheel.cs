@@ -42,11 +42,10 @@ internal class EmoteWheel : MonoBehaviour
     private static bool _warned;
 
     private int _hovered; // 0 = none, 1..6 = segment (== expression index)
-    private static float _centerLinger; // >0: face preview stays centered (post-pick feedback)
-    private static float _diagTimer;    // TODO: remove diagnostics after playtest confirms centering
-    private static bool _dumpedTree;    // TODO: remove with diagnostics
-    private static bool _shrinkMoved;          // rectShrink is currently relocated by us
-    private static Vector3 _shrinkHomeLocal;   // its cached vanilla localPosition
+    private static float _centerLinger;      // >0: face preview stays centered (post-pick feedback)
+    private static RectTransform _headRect;  // 'Player Avatar Render Texture' — the visible head image
+    private static bool _headMoved;          // head image is currently relocated by us
+    private static Vector3 _headHomeLocal;   // its cached vanilla localPosition
     private GUIStyle _title, _label, _labelHover, _labelActive;
 
     // Called by Plugin.OnSceneLoaded: forget toggled faces + refresh label cache.
@@ -56,8 +55,8 @@ internal class EmoteWheel : MonoBehaviour
         _labels = null;
         Open = false;
         _centerLinger = 0f;
-        _shrinkMoved = false; // widget is freshly created per scene; never restore stale coords
-        _dumpedTree = false;
+        _headRect = null;   // widget is freshly created per scene
+        _headMoved = false; // never restore stale coords across scenes
     }
 
     private void Update()
@@ -101,101 +100,67 @@ internal class EmoteWheel : MonoBehaviour
         if (_centerLinger > 0f) _centerLinger -= Time.deltaTime;
         if (!overridePos)
         {
-            _diagTimer = 0f;
-            RestoreShrink();
+            RestoreHead();
             return;
         }
-
-        // TODO: remove diagnostics after playtest confirms centering
-        bool diag = false;
-        _diagTimer -= Time.deltaTime;
-        if (_diagTimer <= 0f) { _diagTimer = 0.5f; diag = true; }
 
         var ui = PlayerExpressionsUI.instance;
         var hud = HUDCanvas.instance;
-        if (ui == null || hud == null)
+        if (ui == null || hud == null) return;
+        if (Open)
         {
-            if (diag) Plugin.Log.LogInfo($"[EmoteWheel][Diag] BAIL ui={(ui != null)} hud={(hud != null)}");
-            return;
+            ui.Show();        // live mirror while the wheel is up
+            ui.ShrinkReset(); // full size (1.0) + full alpha, instead of the idle 0.7/0.35 look
         }
-        if (Open) ui.Show(); // live mirror while the wheel is up
 
         var hudRect = hud.GetComponent<RectTransform>();
-        if (hudRect == null)
-        {
-            if (diag) Plugin.Log.LogInfo("[EmoteWheel][Diag] BAIL hudRect=null");
-            return;
-        }
+        if (hudRect == null) return;
 
-        // Diagnostics (2026-06-09) showed the widget ROOT already sits at canvas center in
-        // vanilla (showPosition (0,-7) in 'Game Hud' space) — the visible head is offset down
-        // to the inventory area by the rectShrink CHILD (the element the game scales 0.7↔1.0
-        // when expressing, i.e. the actual visual container). So center rectShrink, not the
-        // root. The game never repositions rectShrink (only scales it), so a direct write
-        // sticks; we cache its home and restore when the override ends.
-        var shrink = ui.rectShrink;
-        if (shrink == null)
+        // Hierarchy (dumped 2026-06-09): the visible head is the 184x184 'Player Avatar Render
+        // Texture' RawImage hanging ~400 canvas-units BELOW the widget root — in vanilla it
+        // peeks over the canvas's bottom edge by design (only the dome shows). No mask is
+        // involved; anything below the canvas bottom simply falls outside the HUD camera's
+        // render texture. So center the head IMAGE itself and restore it afterwards.
+        var head = FindHeadRect(ui);
+        if (head == null) return;
+        if (!_headMoved)
         {
-            if (diag) Plugin.Log.LogInfo("[EmoteWheel][Diag] BAIL rectShrink=null");
-            return;
-        }
-        if (!_shrinkMoved)
-        {
-            _shrinkHomeLocal = shrink.localPosition;
-            _shrinkMoved = true;
-        }
-        if (!_dumpedTree)
-        {
-            // TODO: remove with diagnostics — one-shot hierarchy dump to find what clips the head.
-            _dumpedTree = true;
-            for (Transform up = ui.transform.parent; up != null; up = up.parent)
-            {
-                Plugin.Log.LogInfo($"[EmoteWheel][Tree] PARENT {Describe(up)}");
-            }
-            DumpTree(ui.transform, 0);
+            _headHomeLocal = head.localPosition;
+            _headMoved = true;
         }
         Vector3 centerWorld = hudRect.TransformPoint(hudRect.rect.center);
-        shrink.position = new Vector3(centerWorld.x, centerWorld.y, shrink.position.z);
+        // Land the image's CENTER on the canvas center regardless of its pivot (it's (0,0)).
+        Vector2 pivotOffset = (head.pivot - new Vector2(0.5f, 0.5f)) * head.rect.size;
+        head.position = new Vector3(centerWorld.x + pivotOffset.x, centerWorld.y + pivotOffset.y, head.position.z);
+    }
 
-        if (diag)
+    // The actual visible element: 'Player Avatar Render Texture' (a RawImage showing the
+    // mini-avatar camera). Found by name with a by-component-name fallback — RawImage's type
+    // lives in an assembly this project doesn't reference, so compare type names instead.
+    private static RectTransform FindHeadRect(PlayerExpressionsUI ui)
+    {
+        if (_headRect != null) return _headRect;
+        Transform root = ui.rectShrink != null ? ui.rectShrink : (Transform)ui.transform;
+        foreach (var rt in root.GetComponentsInChildren<RectTransform>(true))
         {
-            // TODO: remove diagnostics after playtest confirms centering
-            Plugin.Log.LogInfo(
-                $"[EmoteWheel][Diag] open={Open} linger={_centerLinger:F2} hidden={ui.isHidden} " +
-                $"avatarMenu={(ui.PlayerAvatarMenu != null ? ui.PlayerAvatarMenu.activeSelf.ToString() : "null")} " +
-                $"shrinkHome={_shrinkHomeLocal} shrinkLocalNow={shrink.localPosition} shrinkWorldNow={shrink.position} " +
-                $"shrinkScale={shrink.localScale} hudCenterW={centerWorld}");
+            if (rt.name == "Player Avatar Render Texture"
+                || rt.GetComponents<Component>().Any(c => c != null && c.GetType().Name == "RawImage"))
+            {
+                _headRect = rt;
+                break;
+            }
         }
+        return _headRect;
     }
 
-    // TODO: remove with diagnostics
-    private static void DumpTree(Transform t, int depth)
+    // Put the head image back where vanilla had it once the override (wheel/linger) ends.
+    private static void RestoreHead()
     {
-        Plugin.Log.LogInfo($"[EmoteWheel][Tree] {new string(' ', depth * 2)}{Describe(t)}");
-        for (int i = 0; i < t.childCount; i++) DumpTree(t.GetChild(i), depth + 1);
-    }
-
-    // TODO: remove with diagnostics
-    private static string Describe(Transform t)
-    {
-        string comps = string.Join(",", t.GetComponents<Component>().Select(c => c == null ? "null" : c.GetType().Name));
-        string rect = "";
-        if (t is RectTransform rt)
+        if (!_headMoved) return;
+        _headMoved = false;
+        if (_headRect != null)
         {
-            rect = $" anchPos={rt.anchoredPosition} size={rt.sizeDelta} aMin={rt.anchorMin} aMax={rt.anchorMax} pivot={rt.pivot} scale={rt.localScale}";
-        }
-        return $"'{t.name}' active={t.gameObject.activeSelf} [{comps}]{rect}";
-    }
-
-    // Put rectShrink back where vanilla had it once the override (wheel/linger) ends.
-    private static void RestoreShrink()
-    {
-        if (!_shrinkMoved) return;
-        _shrinkMoved = false;
-        var ui = PlayerExpressionsUI.instance;
-        if (ui != null && ui.rectShrink != null)
-        {
-            ui.rectShrink.localPosition = _shrinkHomeLocal;
+            _headRect.localPosition = _headHomeLocal;
         }
     }
 
