@@ -1,7 +1,7 @@
 {
-  "name": "ControllerSupport",
+  "name": "NativeController",
   "version_number": "0.1.0",
   "website_url": "",
-  "description": "Native gamepad/controller support for R.E.P.O. (Phase 1: core gameplay).",
+  "description": "Native controller support for R.E.P.O. - binds your gamepad straight into the game's own input (no keyboard/mouse emulation), with menu navigation, button glyphs, and aim assist.",
   "dependencies": []
 }
