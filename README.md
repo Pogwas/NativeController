@@ -28,19 +28,19 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 |---|---|---|
 | Move | Left stick | Left stick |
 | Look | Right stick | Right stick |
-| Jump | A | ✕ (Cross) |
-| Interact | X | □ (Square) |
-| Tumble | B | ○ (Circle) |
-| Map | Y | △ (Triangle) |
+| Jump | A | ✕ |
+| Interact | X | □ |
+| Tumble | B | ○ |
+| Map | Y | △ |
 | Sprint (press to toggle — stops on empty stamina / standing still) | L3 (left stick click) | L3 (left stick click) |
 | Crouch | R3 (right stick click) | R3 (right stick click) |
 | Grab (press to toggle — press again to let go) | RT | R2 |
 | Rotate held object | LT (hold) | L2 (hold) |
 | Pull / Push (held) | LB / RB | L1 / R1 |
-| Inventory slots 1 / 2 / 3 | D-pad ← ↑ → | D-pad ← ↑ → |
+| Inventory slots 1 / 2 / 3 | ← ↑ → | ← ↑ → |
 | Pause menu | Start | Options |
 | Chat | Back | Create |
-| Emote wheel (right stick picks, release toggles) | D-pad ↓ (hold, in game) | D-pad ↓ (hold, in game) |
+| Emote wheel (right stick picks, release toggles) | ↓ (hold, in game) | ↓ (hold, in game) |
 | Show the Controller Layout overlay | Settings menu | Settings menu |
 
 ## Installation

@@ -74,28 +74,11 @@ internal static class InputDisplayPatch
         }
     }
 
-    // Vanilla key text renders through TextMeshPro, whose font may lack the PS face symbols
-    // (✕○□△) and arrow glyphs — use TMP-safe text there. Our own IMGUI overlays keep using
-    // ButtonNames symbols (the OS symbol font renders them fine).
+    // Show the SYMBOLS (✕○□△, ←↑→↓) in vanilla key tags, same as everywhere else in the mod —
+    // user preference 2026-06-09 ("show the shape, not the text of the shape"). The earlier
+    // TMP-safe text substitution (Cross/Square/D-Pad Left) was an uninvited safety net.
     private static string B(ButtonNames.Control c, ControllerDetect.Kind kind)
     {
-        if (kind == ControllerDetect.Kind.PlayStation)
-        {
-            switch (c)
-            {
-                case ButtonNames.Control.South: return "Cross";
-                case ButtonNames.Control.East: return "Circle";
-                case ButtonNames.Control.West: return "Square";
-                case ButtonNames.Control.North: return "Triangle";
-            }
-        }
-        switch (c)
-        {
-            case ButtonNames.Control.DpadLeft: return "D-Pad Left";
-            case ButtonNames.Control.DpadUp: return "D-Pad Up";
-            case ButtonNames.Control.DpadRight: return "D-Pad Right";
-            case ButtonNames.Control.DpadDown: return "D-Pad Down";
-        }
         return ButtonNames.Of(c, kind);
     }
 
