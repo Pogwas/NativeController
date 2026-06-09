@@ -42,6 +42,7 @@ internal class EmoteWheel : MonoBehaviour
 
     private int _hovered; // 0 = none, 1..6 = segment (== expression index)
     private static float _centerLinger; // >0: face preview stays centered (post-pick feedback)
+    private static float _diagTimer;    // TODO: remove diagnostics after playtest confirms centering
     private GUIStyle _title, _label, _labelHover, _labelActive;
 
     // Called by Plugin.OnSceneLoaded: forget toggled faces + refresh label cache.
@@ -92,15 +93,28 @@ internal class EmoteWheel : MonoBehaviour
     {
         bool overridePos = Open || _centerLinger > 0f;
         if (_centerLinger > 0f) _centerLinger -= Time.deltaTime;
-        if (!overridePos) return;
+        if (!overridePos) { _diagTimer = 0f; return; }
+
+        // TODO: remove diagnostics after playtest confirms centering
+        bool diag = false;
+        _diagTimer -= Time.deltaTime;
+        if (_diagTimer <= 0f) { _diagTimer = 0.5f; diag = true; }
 
         var ui = PlayerExpressionsUI.instance;
         var hud = HUDCanvas.instance;
-        if (ui == null || hud == null) return;
+        if (ui == null || hud == null)
+        {
+            if (diag) Plugin.Log.LogInfo($"[EmoteWheel][Diag] BAIL ui={(ui != null)} hud={(hud != null)}");
+            return;
+        }
         if (Open) ui.Show(); // live mirror while the wheel is up
 
         var hudRect = hud.GetComponent<RectTransform>();
-        if (hudRect == null) return;
+        if (hudRect == null)
+        {
+            if (diag) Plugin.Log.LogInfo("[EmoteWheel][Diag] BAIL hudRect=null");
+            return;
+        }
 
         // The transform SemiUI repositions each frame (SemiUI.UpdatePositionLogic): the whole
         // object when animateTheEntireObject, else its textRectTransform.
@@ -115,6 +129,18 @@ internal class EmoteWheel : MonoBehaviour
         Vector3 centerWorld = hudRect.TransformPoint(hudRect.rect.center);
         Vector2 desiredLocal = parent.InverseTransformPoint(centerWorld);
         ui.SemiUIScoot(desiredLocal - ui.showPosition);
+
+        if (diag)
+        {
+            // TODO: remove diagnostics after playtest confirms centering
+            var lg = LevelGenerator.Instance;
+            Plugin.Log.LogInfo(
+                $"[EmoteWheel][Diag] open={Open} linger={_centerLinger:F2} gen={(lg != null ? lg.Generated.ToString() : "noLG")} " +
+                $"menuLvl={SemiFunc.MenuLevel()} hidden={ui.isHidden} avatarMenu={(ui.PlayerAvatarMenu != null ? ui.PlayerAvatarMenu.activeSelf.ToString() : "null")} " +
+                $"animAll={ui.animateTheEntireObject} moved='{moved.name}' parent='{parent.name}' parentScale={parent.lossyScale} " +
+                $"localPos={moved.localPosition} show={ui.showPosition} desired={desiredLocal} offset={desiredLocal - ui.showPosition} " +
+                $"hudSize={hudRect.sizeDelta} hudCenterW={centerWorld}");
+        }
     }
 
     private static void DriveActiveExpressions()
