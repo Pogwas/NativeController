@@ -155,10 +155,17 @@ internal class MenuNavigator : MonoBehaviour
 
         // Primary: scope to the one focused page. This drops foreign-page buttons (the main menu staying
         // live under the mod menu) so DOWN walks in-page rows and never jumps to a wrong-page button.
+        // A null parentPage FIELD falls back to the transform hierarchy — injected buttons (e.g.
+        // REPOConfig's main-menu "Mods") can miss the back-reference while sitting visibly on the
+        // page, which silently dropped them from navigation (user bug 2026-06-09: MODS skipped).
         if (focus != null)
         {
             foreach (var b in all)
-                if (Usable(b) && ParentPageRef(b) == focus) list.Add(b);
+            {
+                if (!Usable(b)) continue;
+                var pp = ParentPageRef(b);
+                if (pp == focus || (pp == null && b.GetComponentInParent<MenuPage>() == focus)) list.Add(b);
+            }
             if (list.Count > 0) { AddCulledScrollRows(list); return list; }
             // Scoped set empty (e.g. a page whose buttons don't back-reference it) -> permissive fallback.
         }
@@ -282,6 +289,10 @@ internal class MenuNavigator : MonoBehaviour
         }
         if (next == null) next = NearestInDirection(candidates, _selected, dir);
 
+        // TODO: remove after the slider-arrow / MODS-skip fixes are verified (2026-06-09).
+        Plugin.Log.LogInfo($"[NavDiag] from='{Label(_selected)}'@{ScreenPos(_selected)} dir={dir} -> " +
+            (next != null ? $"'{Label(next)}'@{ScreenPos(next)}" : "none") + $" (cands={candidates.Count})");
+
         // No in-page target on a horizontal press -> try crossing to the other panel/page.
         if (next == null && Mathf.Abs(dir.x) > 0.5f && TrySwitchPanel(dir.x < 0 ? -1 : 1))
             return;
@@ -343,6 +354,25 @@ internal class MenuNavigator : MonoBehaviour
     private static MenuButton NearestInDirection(List<MenuButton> candidates, MenuButton from, Vector2 dir)
     {
         Vector2 origin = ScreenPos(from);
+
+        // Pass 0 (horizontal only): SAME-ROW first. A slider's < and > sit far apart on one
+        // line; without this, a slightly-right control in a DIFFERENT row sets the pass-1
+        // band and the same-row > gets excluded (user bug 2026-06-09: couldn't reach the
+        // other slider arrow). Same-row = |Δy| within a fraction of typical row spacing.
+        if (dir.y == 0f)
+        {
+            MenuButton sameRow = null;
+            float sameRowAlong = float.MaxValue;
+            foreach (var c in candidates)
+            {
+                if (c == from) continue;
+                Vector2 d0 = ScreenPos(c) - origin;
+                if (Mathf.Abs(d0.y) > 12f) continue;
+                float fwd = d0.x * dir.x;
+                if (fwd > 0.5f && fwd < sameRowAlong) { sameRowAlong = fwd; sameRow = c; }
+            }
+            if (sameRow != null) return sameRow;
+        }
 
         // Pass 1: smallest forward distance (the nearest row/step).
         float minAlong = float.MaxValue;
