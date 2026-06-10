@@ -36,6 +36,7 @@ internal static class GamepadBindingsPatch
             // Menu / chat
             Bind(__instance, InputKey.Menu,     "<Gamepad>/start");  // Start
             Bind(__instance, InputKey.Chat,     "<Gamepad>/select"); // Back/View
+            Bind(__instance, InputKey.ChatDelete, "<Gamepad>/buttonEast"); // B = backspace while chat is open (action is only read inside chat -- inert otherwise; B-as-Tumble is vanilla-gated during chat)
             // Inventory (discrete per-slot) on the D-pad
             Bind(__instance, InputKey.Inventory1, "<Gamepad>/dpad/left");  // D-pad Left
             Bind(__instance, InputKey.Inventory2, "<Gamepad>/dpad/up");    // D-pad Up

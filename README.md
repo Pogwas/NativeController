@@ -14,6 +14,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 - **Right-stick look** with configurable speed, invert, and deadzone.
 - **Full menu navigation** — move with the D-pad / left stick, A to confirm, B to back. Works in the vanilla menus *and* REPOConfig's mod menu (sliders, scrolling lists, tabs).
 - **Emote wheel** — hold D-pad Down for a radial wheel of the game's 6 expressions; right stick picks, release plays it. Emotes auto-clear after a few seconds (configurable).
+- **On-screen chat keyboard** — open chat with the pad (Back/View) and a controller-navigable QWERTY keyboard appears: D-pad / left stick moves, A types, B deletes, X = space, Start sends. Your message goes through the game's own chat — other players see you type and the TTS voice speaks it, exactly like keyboard chat.
 - **Toggle sprint & toggle grab** — press Sprint once to keep sprinting (ends when stamina empties or you stop moving, like vanilla); press Grab once to keep holding, press again to let go.
 - **Button prompts** — vanilla-style hints flanking the inventory (GRAB / LET GO / ROTATE / CLIMB), and the game's own key tags show your controller's buttons (SHOTGUN [X] instead of [E]) while the pad is the active input.
 - **Controller Layout overlay** — an in-game cheat-sheet of the button map, opened from a button added to the Settings menu (needs MenuLib).
@@ -39,7 +40,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 | Pull / Push (held) | LB / RB | L1 / R1 |
 | Inventory slots 1 / 2 / 3 | ← ↑ → | ← ↑ → |
 | Pause menu | Start | Options |
-| Chat | Back | Create |
+| Chat (opens the on-screen keyboard) | Back | Create |
 | Emote wheel (right stick picks, release toggles) | ↓ (hold, in game) | ↓ (hold, in game) |
 | Show the Controller Layout overlay | Settings menu | Settings menu |
 
@@ -58,6 +59,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 |---|---|
 | `Gamepad` | Master toggle, right-stick look speed (X/Y), invert-Y, stick deadzone, menu cursor speed |
 | `Aim Assist` | Toggle + item/enemy toggles, and the bounded-nudge tuning: Gain, MaxFraction (the no-lock cap), MaxDegPerFrame, IdleDrift, ActiveThreshold, MaxAngle (cone), ItemRange, EnemyRange, DeadZone |
+| `Chat Keyboard` | On-screen chat keyboard: toggle + panel size |
 
 ## Bug reports
 
@@ -70,6 +72,10 @@ Please open an [Issue](https://github.com/Pogwas/NativeController/issues) and in
 - Steps to reproduce
 
 ## Changelog
+
+### 0.4.0
+
+- **On-screen chat keyboard** — pad players can finally chat/TTS: opening chat with Back/View shows a navigable QWERTY panel (D-pad / left stick moves, A types, B deletes, X space, Start sends, Back/View closes). Typing goes through vanilla chat, so live type-out, multiplayer sync, and the TTS voice all behave exactly like keyboard chat. Config: `[Chat Keyboard] Enabled` / `Scale`.
 
 ### 0.3.0
 
