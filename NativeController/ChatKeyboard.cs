@@ -50,6 +50,23 @@ internal class ChatKeyboard : MonoBehaviour
     private float _styleScale = -1f;        // rebuild styles when the Scale config changes
     private static bool _warned;
 
+    // Per-key label cache (OnGUI runs 2+ times per frame -- no per-event allocations).
+    private static readonly string[][] KeyLabels = BuildKeyLabels();
+    private string _hints;                       // cached hint row text
+    private ControllerDetect.Kind _hintsKind;    // rebuilt when the glyph kind changes
+    private bool _hintsBuilt;
+
+    private static string[][] BuildKeyLabels()
+    {
+        var labels = new string[CharRows.Length][];
+        for (int r = 0; r < CharRows.Length; r++)
+        {
+            labels[r] = new string[CharRows[r].Length];
+            for (int c = 0; c < CharRows[r].Length; c++) labels[r][c] = CharRows[r][c].ToString();
+        }
+        return labels;
+    }
+
     // Called by Plugin.OnSceneLoaded.
     internal static void ResetState()
     {
@@ -99,8 +116,10 @@ internal class ChatKeyboard : MonoBehaviour
         }
         if (!Open || gp == null) return;
 
-        // Select-to-close arms only once the opening press is released.
-        if (!gp.selectButton.isPressed) _selectArmed = true;
+        // Select-to-close arms only once the opening press is fully released (the
+        // release frame itself must not arm, or the opening press's own release
+        // would close immediately).
+        if (!gp.selectButton.isPressed && !gp.selectButton.wasReleasedThisFrame) _selectArmed = true;
 
         try
         {
@@ -183,7 +202,10 @@ internal class ChatKeyboard : MonoBehaviour
         }
         if (gp.buttonWest.wasPressedThisFrame) TypeChar(chat, " ");      // X: space
         if (gp.startButton.wasPressedThisFrame) SendOrClose(chat);       // Start: send / close-if-empty
-        if (_selectArmed && gp.selectButton.wasPressedThisFrame) Cancel(chat); // Select: close
+        // Select: close on RELEASE, not press -- Select is also InputKey.Chat, and a
+        // press is visible to vanilla's StateInactive for the whole frame (either
+        // Update order), which would instantly REOPEN the chat we just closed.
+        if (_selectArmed && gp.selectButton.wasReleasedThisFrame) Cancel(chat);
         // B (backspace): vanilla consumes the ChatDelete binding in StateActive -- nothing here.
     }
 
@@ -207,12 +229,20 @@ internal class ChatKeyboard : MonoBehaviour
         MenuManager.instance.MenuEffectClick(MenuManager.MenuClickEffectType.Tick, null, 2f, 0.2f, soundOnly: true);
     }
 
-    // Mirror vanilla Confirm semantics (ChatManager.cs:460-468): non-empty -> Send, empty -> close.
+    // Mirror vanilla Confirm semantics (ChatManager.cs:460-468): non-empty -> Send;
+    // empty -> close SILENTLY (the Deny shake/sound is vanilla's Esc path, not Confirm's).
     private void SendOrClose(ChatManager chat)
     {
         string msg = ChatMessageRef(chat) ?? "";
-        if (msg != "") chat.ForceConfirmChat();
-        else Cancel(chat);
+        if (msg != "")
+        {
+            chat.ForceConfirmChat();
+        }
+        else
+        {
+            StateSet(chat, ChatManager.ChatState.Inactive);
+            Open = false;
+        }
     }
 
     // Pad equivalent of vanilla's Esc/Back cancel, including its feedback (ChatManager.cs:368-374).
@@ -229,7 +259,7 @@ internal class ChatKeyboard : MonoBehaviour
     {
         if (_warned) return;
         _warned = true;
-        Plugin.Log.LogWarning($"[ChatKeyboard] Disabled after error: {e.Message}");
+        Plugin.Log.LogWarning($"[ChatKeyboard] Error (further warnings suppressed): {e.Message}");
     }
 
     private void OnGUI()
@@ -238,11 +268,11 @@ internal class ChatKeyboard : MonoBehaviour
         float s = Plugin.ChatKeyboardScale.Value;
         EnsureStyles(s);
 
-        float key = 34f * s, gap = 4f * s, pad = 10f * s;
-        float gridW = 10 * key + 9 * gap;
+        float keyW = 34f * s, gap = 4f * s, pad = 10f * s;
+        float gridW = 10 * keyW + 9 * gap;
         float panelW = gridW + 2 * pad;
         float hintH = 22f * s;
-        float panelH = 5 * (key + gap) - gap + 2 * pad + hintH;
+        float panelH = 5 * (keyW + gap) - gap + 2 * pad + hintH;
         float x0 = (Screen.width - panelW) / 2f;
         // Sit just above the bottom edge; vanilla's chat text renders higher up the screen.
         float y0 = Screen.height - panelH - 40f * s;
@@ -255,26 +285,31 @@ internal class ChatKeyboard : MonoBehaviour
         {
             for (int c = 0; c < CharRows[r].Length; c++)
             {
-                DrawKey(new Rect(x0 + pad + c * (key + gap), y0 + pad + r * (key + gap), key, key),
-                        CharRows[r][c].ToString(), r == _row && c == _col);
+                DrawKey(new Rect(x0 + pad + c * (keyW + gap), y0 + pad + r * (keyW + gap), keyW, keyW),
+                        KeyLabels[r][c], r == _row && c == _col);
             }
         }
 
         // Special row: ! | SPACE (wide) | SEND (wide) -- the two wide keys split the rest of the grid width.
-        float yS = y0 + pad + SpecialRow * (key + gap);
-        float wide = (gridW - key - 2 * gap) / 2f;
-        DrawKey(new Rect(x0 + pad, yS, key, key), "!", _row == SpecialRow && _col == 0);
-        DrawKey(new Rect(x0 + pad + key + gap, yS, wide, key), "SPACE", _row == SpecialRow && _col == 1);
-        DrawKey(new Rect(x0 + pad + key + gap + wide + gap, yS, wide, key), "SEND", _row == SpecialRow && _col == 2);
+        float yS = y0 + pad + SpecialRow * (keyW + gap);
+        float wide = (gridW - keyW - 2 * gap) / 2f;
+        DrawKey(new Rect(x0 + pad, yS, keyW, keyW), "!", _row == SpecialRow && _col == 0);
+        DrawKey(new Rect(x0 + pad + keyW + gap, yS, wide, keyW), "SPACE", _row == SpecialRow && _col == 1);
+        DrawKey(new Rect(x0 + pad + keyW + gap + wide + gap, yS, wide, keyW), "SEND", _row == SpecialRow && _col == 2);
 
         var kind = ControllerDetect.Current;
-        string hints =
-            ButtonNames.Of(ButtonNames.Control.South, kind) + " type    " +
-            ButtonNames.Of(ButtonNames.Control.East, kind) + " backspace    " +
-            ButtonNames.Of(ButtonNames.Control.West, kind) + " space    " +
-            ButtonNames.Of(ButtonNames.Control.Start, kind) + " send    " +
-            ButtonNames.Of(ButtonNames.Control.Select, kind) + " close";
-        GUI.Label(new Rect(x0, yS + key + gap, panelW, hintH), hints, _hint);
+        if (!_hintsBuilt || kind != _hintsKind)
+        {
+            _hintsBuilt = true;
+            _hintsKind = kind;
+            _hints =
+                ButtonNames.Of(ButtonNames.Control.South, kind) + " type    " +
+                ButtonNames.Of(ButtonNames.Control.East, kind) + " backspace    " +
+                ButtonNames.Of(ButtonNames.Control.West, kind) + " space    " +
+                ButtonNames.Of(ButtonNames.Control.Start, kind) + " send    " +
+                ButtonNames.Of(ButtonNames.Control.Select, kind) + " close";
+        }
+        GUI.Label(new Rect(x0, yS + keyW + gap, panelW, hintH), _hints, _hint);
     }
 
     private void DrawKey(Rect rect, string label, bool hovered)
