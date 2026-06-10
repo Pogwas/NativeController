@@ -10,7 +10,25 @@ internal static class ControllerDetect
 {
     internal enum Kind { None, Xbox, PlayStation, Switch, Generic }
 
-    internal static Kind Current { get; private set; } = Kind.None;
+    // User-facing glyph-style override ([Gamepad] GlyphStyle). Auto = use the detected kind.
+    internal enum Style { Auto, Xbox, PlayStation, Switch }
+
+    private static Kind _detected = Kind.None;
+
+    internal static Kind Current
+    {
+        get
+        {
+            var style = Plugin.GlyphStyle != null ? Plugin.GlyphStyle.Value : Style.Auto;
+            switch (style)
+            {
+                case Style.Xbox: return Kind.Xbox;
+                case Style.PlayStation: return Kind.PlayStation;
+                case Style.Switch: return Kind.Switch;
+                default: return _detected;
+            }
+        }
+    }
 
     // Last-input-wins "is the pad the active input" signal, valid EVERYWHERE (gameplay + menus).
     // NOTE: MenuNavigator.ControllerActive looks similar but is menu-scoped — its Update early-
@@ -86,10 +104,12 @@ internal static class ControllerDetect
     {
         var gp = Gamepad.current;
         var kind = Classify(gp);
-        if (kind == Current) return;
-        Current = kind;
+        if (kind == _detected) return;
+        _detected = kind;
         string product = gp == null ? "none" : $"{gp.displayName} (layout={gp.layout})";
-        Plugin.Log.LogInfo($"[Gamepad] Detected controller: {kind} — {product}");
+        var style = Plugin.GlyphStyle != null ? Plugin.GlyphStyle.Value : Style.Auto;
+        string overrideNote = style == Style.Auto ? "" : $" (glyph override active: {style})";
+        Plugin.Log.LogInfo($"[Gamepad] Detected controller: {kind} — {product}{overrideNote}");
     }
 
     private static Kind Classify(Gamepad gp)

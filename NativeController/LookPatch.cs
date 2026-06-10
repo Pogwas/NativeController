@@ -25,6 +25,7 @@ internal static class LookPatch
         if (gp != null)
         {
             float x = Deadzone(gp.rightStick.ReadValue().x);
+            if (Plugin.InvertX.Value) x = -x;
             __result += x * Plugin.LookSpeedX.Value;
         }
 

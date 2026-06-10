@@ -23,6 +23,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> LookSpeedX;
     internal static ConfigEntry<float> LookSpeedY;
     internal static ConfigEntry<bool> InvertY;
+    internal static ConfigEntry<bool> InvertX;
     internal static ConfigEntry<float> StickDeadzone;
     internal static ConfigEntry<float> MenuCursorSpeed;
     internal static ConfigEntry<bool> EmoteWheelEnabled;
@@ -34,6 +35,8 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> InventoryArrows;
     internal static ConfigEntry<bool> SprintToggle;
     internal static ConfigEntry<bool> GrabToggle;
+    internal static ConfigEntry<bool> CrouchToggle;
+    internal static ConfigEntry<ControllerDetect.Style> GlyphStyle;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
     internal static ConfigEntry<bool> AimAssistItems;
@@ -68,6 +71,7 @@ public class Plugin : BaseUnityPlugin
         LookSpeedY = Config.Bind("Gamepad", "LookSpeedY", 1.0f,
             new ConfigDescription("Right-stick vertical camera speed.", new AcceptableValueRange<float>(0.1f, 20f)));
         InvertY = Config.Bind("Gamepad", "InvertY", false, "Invert right-stick vertical look.");
+        InvertX = Config.Bind("Gamepad", "InvertX", false, "Invert right-stick horizontal look.");
         StickDeadzone = Config.Bind("Gamepad", "StickDeadzone", 0.15f,
             new ConfigDescription("Right-stick deadzone (ignore small movements).", new AcceptableValueRange<float>(0f, 0.6f)));
         MenuCursorSpeed = Config.Bind("Gamepad", "MenuCursorSpeed", 12f,
@@ -90,6 +94,10 @@ public class Plugin : BaseUnityPlugin
             "Press Sprint (L3) once to keep sprinting; it stops when stamina runs out, you stop moving, or you press it again. Applies while a gamepad is connected (also affects keyboard Sprint).");
         GrabToggle = Config.Bind("Gamepad", "ToggleGrab", true,
             "Press Grab (RT) once to keep holding a grabbed object; press again to let go. Auto-releases if the grab breaks. Applies while a gamepad is connected (also affects keyboard/mouse Grab).");
+        CrouchToggle = Config.Bind("Gamepad", "ToggleCrouch", true,
+            "Press Crouch (R3) once to stay crouched; press again to stand. Applies while a gamepad is connected (also affects keyboard Crouch).");
+        GlyphStyle = Config.Bind("Gamepad", "GlyphStyle", ControllerDetect.Style.Auto,
+            "Which controller's button names/glyphs to show. Auto = detect from the connected pad.");
 
         AimAssistEnabled = Config.Bind("Aim Assist", "Enabled", true,
             "Master toggle for aim assist (gently nudges your view toward items, and toward enemies when a weapon/staff is held).");
