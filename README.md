@@ -15,10 +15,11 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 - **Full menu navigation** — move with the D-pad / left stick, A to confirm, B to back. Works in the vanilla menus *and* REPOConfig's mod menu (sliders, scrolling lists, tabs).
 - **Emote wheel** — hold D-pad Down for a radial wheel of the game's 6 expressions; right stick picks, release plays it. Emotes auto-clear after a few seconds (configurable).
 - **On-screen chat keyboard** — open chat with the pad (Back/View) and a controller-navigable QWERTY keyboard appears: D-pad / left stick moves, A types, B deletes, X = space, Start sends. Your message goes through the game's own chat — other players see you type and the TTS voice speaks it, exactly like keyboard chat.
-- **Toggle sprint & toggle grab** — press Sprint once to keep sprinting (ends when stamina empties or you stop moving, like vanilla); press Grab once to keep holding, press again to let go.
+- **Toggle sprint, grab & crouch** — press Sprint once to keep sprinting (ends when stamina empties or you stop moving, like vanilla); press Grab once to keep holding, press again to let go; press Crouch once to stay crouched, again to stand.
 - **Button prompts** — vanilla-style hints flanking the inventory (GRAB / LET GO / ROTATE / CLIMB), and the game's own key tags show your controller's buttons (SHOTGUN [X] instead of [E]) while the pad is the active input.
+- **Inventory D-pad arrows** — the three inventory slots show ← ↑ → instead of 1 2 3 while you're playing on the pad, so you always know which D-pad direction equips which slot.
 - **Controller Layout overlay** — an in-game cheat-sheet of the button map, opened from a button added to the Settings menu (needs MenuLib).
-- **Kind-aware button glyphs** — prompts show the right icons for Xbox, PlayStation, or Switch controllers (auto-detected).
+- **Kind-aware button glyphs** — prompts show the right icons for Xbox, PlayStation, or Switch controllers (auto-detected, with a manual override).
 - **Holdable push/pull on the bumpers** — LB/RB drive the grab beam's push/pull as a real held input.
 - **Aim assist** — an optional, gentle nudge toward grabbable items (when close) and enemies (when a weapon or staff is in hand). It's a bounded correction added to your own look — it never overpowers your turn or locks on. Fully configurable, off-switchable.
 - **Splash-screen skip** — a controller button skips the intro logos.
@@ -34,7 +35,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 | Tumble | B | ○ |
 | Map | Y | △ |
 | Sprint (press to toggle — stops on empty stamina / standing still) | L3 (left stick click) | L3 (left stick click) |
-| Crouch | R3 (right stick click) | R3 (right stick click) |
+| Crouch (press to toggle — press again to stand) | R3 (right stick click) | R3 (right stick click) |
 | Grab (press to toggle — press again to let go) | RT | R2 |
 | Rotate held object | LT (hold) | L2 (hold) |
 | Pull / Push (held) | LB / RB | L1 / R1 |
@@ -57,8 +58,10 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 
 | Section | What it controls |
 |---|---|
-| `Gamepad` | Master toggle, right-stick look speed (X/Y), invert-Y, stick deadzone, menu cursor speed |
+| `Gamepad` | Master toggle, right-stick look speed (X/Y), invert X/Y, stick deadzone, menu cursor speed, toggle sprint/grab/crouch, glyph style override (Auto / Xbox / PlayStation / Switch) |
 | `Aim Assist` | Toggle + item/enemy toggles, and the bounded-nudge tuning: Gain, MaxFraction (the no-lock cap), MaxDegPerFrame, IdleDrift, ActiveThreshold, MaxAngle (cone), ItemRange, EnemyRange, DeadZone |
+| `Emote Wheel` | Toggle, emote duration, face-preview camera framing |
+| `Prompts` | Crosshair button prompts, controller key tags, inventory D-pad arrows |
 | `Chat Keyboard` | On-screen chat keyboard: toggle + panel size |
 
 ## Bug reports
@@ -76,6 +79,12 @@ Please open an [Issue](https://github.com/Pogwas/NativeController/issues) and in
 ### 0.4.0
 
 - **On-screen chat keyboard** — pad players can finally chat/TTS: opening chat with Back/View shows a navigable QWERTY panel (D-pad / left stick moves, A types, B deletes, X space, Start sends, Back/View closes). Typing goes through vanilla chat, so live type-out, multiplayer sync, and the TTS voice all behave exactly like keyboard chat. Config: `[Chat Keyboard] Enabled` / `Scale`.
+- **Inventory D-pad arrows** — the three slots' number labels become ← ↑ → while the pad is the active input (appears after your first pad touch each level). Config: `[Prompts] InventoryArrows`.
+- **Menu hint gating** — the "D-Pad Move / Select / Back" menu hint now only shows while the controller is the active input.
+- **Invert-X** — new config for right-stick horizontal look, mirroring InvertY. Config: `[Gamepad] InvertX`.
+- **Toggle crouch** — press Crouch (R3) once to stay crouched, again to stand; configurable like the other toggles. Config: `[Gamepad] ToggleCrouch`.
+- **Button-name style override** — force Xbox / PlayStation / Switch button names everywhere instead of auto-detecting from the pad. Config: `[Gamepad] GlyphStyle`.
+- **Menu navigation fixes** — horizontal D-pad presses now prefer targets on the same row, and page detection falls back to the UI hierarchy (fixes the MODS button getting skipped and occasional cross-page jumps).
 
 ### 0.3.0
 
