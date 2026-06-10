@@ -37,6 +37,8 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> GrabToggle;
     internal static ConfigEntry<bool> CrouchToggle;
     internal static ConfigEntry<ControllerDetect.Style> GlyphStyle;
+    internal static ConfigEntry<bool> ChatKeyboardEnabled;
+    internal static ConfigEntry<float> ChatKeyboardScale;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
     internal static ConfigEntry<bool> AimAssistItems;
@@ -57,6 +59,7 @@ public class Plugin : BaseUnityPlugin
     private static GameObject _aimAssistGO;
     private static GameObject _emoteWheelGO;
     private static GameObject _grabPromptsGO;
+    private static GameObject _chatKeyboardGO;
 
     private void Awake()
     {
@@ -98,6 +101,10 @@ public class Plugin : BaseUnityPlugin
             "Press Crouch (R3) once to stay crouched; press again to stand. Applies while a gamepad is connected (also affects keyboard Crouch).");
         GlyphStyle = Config.Bind("Gamepad", "GlyphStyle", ControllerDetect.Style.Auto,
             "Which controller's button names/glyphs to show. Auto = detect from the connected pad.");
+        ChatKeyboardEnabled = Config.Bind("Chat Keyboard", "Enabled", true,
+            "Show an on-screen keyboard when you open chat with the controller (Back/View). D-pad / left stick moves, A types, B deletes, X = space, Start sends, Back/View closes. Chat opened from the keyboard never shows it.");
+        ChatKeyboardScale = Config.Bind("Chat Keyboard", "Scale", 1.0f,
+            new ConfigDescription("Size of the on-screen keyboard panel.", new AcceptableValueRange<float>(0.5f, 2f)));
 
         AimAssistEnabled = Config.Bind("Aim Assist", "Enabled", true,
             "Master toggle for aim assist (gently nudges your view toward items, and toward enemies when a weapon/staff is held).");
@@ -174,7 +181,14 @@ public class Plugin : BaseUnityPlugin
             DontDestroyOnLoad(_grabPromptsGO);
             Log.LogDebug("[Gamepad] GrabPromptOverlay (re)created.");
         }
+        if (_chatKeyboardGO == null)
+        {
+            _chatKeyboardGO = new GameObject("NativeController.ChatKeyboard", typeof(ChatKeyboard));
+            DontDestroyOnLoad(_chatKeyboardGO);
+            Log.LogDebug("[Gamepad] ChatKeyboard (re)created.");
+        }
         EmoteWheel.ResetState(); // every scene load: forget toggled faces, refresh labels
+        ChatKeyboard.ResetState(); // every scene load: never carry a stale-open panel across levels
         ControllerDetect.ResetLevelTouch(); // inventory arrows wait for the first pad touch per level
     }
 }
