@@ -289,10 +289,6 @@ internal class MenuNavigator : MonoBehaviour
         }
         if (next == null) next = NearestInDirection(candidates, _selected, dir);
 
-        // TODO: remove after the slider-arrow / MODS-skip fixes are verified (2026-06-09).
-        Plugin.Log.LogInfo($"[NavDiag] from='{Label(_selected)}'@{ScreenPos(_selected)} dir={dir} -> " +
-            (next != null ? $"'{Label(next)}'@{ScreenPos(next)}" : "none") + $" (cands={candidates.Count})");
-
         // No in-page target on a horizontal press -> try crossing to the other panel/page.
         if (next == null && Mathf.Abs(dir.x) > 0.5f && TrySwitchPanel(dir.x < 0 ? -1 : 1))
             return;
