@@ -3,6 +3,7 @@ obj/
 decompiled/
 decompiled-mods/
 docs/
+.superpowers/
 *.cfg
 *.zip
 .vs/
