@@ -386,7 +386,12 @@ internal class MenuNavigator : MonoBehaviour
         if (minAlong == float.MaxValue) return null;
 
         // Pass 2: among candidates within a band of that nearest step, pick min lateral offset (then nearest).
-        float band = minAlong * 1.6f + 1f;
+        // Band = nearest step + in-row wobble ONLY. The old multiplicative band (minAlong * 1.6) swallowed
+        // the row AFTER the target when the nearest gap was extra large — REPOConfig injects its pause-menu
+        // 'Mods' button 58 units below 'Main Menu' (normal rows: ~32), so 'Quit Game' (88) fell inside the
+        // 93-unit band and won on lateral alignment (text-center x of short 'Mods' wobbles ~19 left).
+        // NavDiag-verified 2026-06-09 against every working transition in the session log.
+        float band = minAlong + 14f;
         MenuButton best = null;
         float bestScore = float.MaxValue;
         foreach (var c in candidates)
