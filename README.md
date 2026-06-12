@@ -14,7 +14,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 - **Right-stick look** — configurable speed, invert, deadzone.
 - **Full menu navigation** — D-pad / left stick moves, A confirms, B backs. Covers the vanilla menus, server browser, saved games and REPOConfig's mod menu.
 - **Emote wheel** — hold D-pad Down; right stick picks, release plays. Auto-clears (configurable).
-- **On-screen chat keyboard** — open chat with Back/View and type with the pad. Goes through vanilla chat: live type-out, multiplayer sync, TTS.
+- **On-screen chat keyboard** — open chat with Back/View and type with the pad. Goes through vanilla chat: live type-out, multiplayer sync, TTS; right-stick flick up/down recalls sent-message history (like vanilla's Up/Down arrows).
 - **Menu text fields on pad** — lobby name, save rename, server search and password screens auto-open the keyboard; vanilla rules apply; hides itself on mouse.
 - **Toggle sprint, grab & crouch** — one press holds the action, a second (or vanilla's own stop conditions) ends it.
 - **Button prompts** — GRAB / LET GO / ROTATE / CLIMB hints by the inventory, and the game's key tags show pad buttons (SHOTGUN [X] instead of [E]).
@@ -63,7 +63,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 | `Aim Assist` | Toggle + item/enemy toggles, and the bounded-nudge tuning: Gain, MaxFraction (the no-lock cap), MaxDegPerFrame, IdleDrift, ActiveThreshold, MaxAngle (cone), ItemRange, EnemyRange, DeadZone |
 | `Emote Wheel` | Toggle, emote duration, face-preview camera framing |
 | `Prompts` | Crosshair button prompts, controller key tags, inventory D-pad arrows |
-| `Chat Keyboard` | On-screen chat keyboard: toggle + panel size |
+| `Chat Keyboard` | On-screen chat keyboard: toggle + panel size, plus `HistoryRecallEnabled` (default `true`) — right-stick flick up/down while the chat keyboard is open recalls recently sent messages (up = older, down = newer) |
 | `Menu Keyboard` | On-screen keyboard for menu text fields: toggle (size follows Chat Keyboard Scale) |
 
 ## Bug reports
