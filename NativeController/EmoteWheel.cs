@@ -10,6 +10,8 @@ namespace NativeController;
 // (vanilla keyboard keys 5-0). Right stick hovers a segment; releasing D-pad Down toggles
 // that expression on/off via the public RPC-synced PlayerAvatar expression API (vanilla
 // toggle semantics). Neutral-stick release = no change (wheel convention: center = cancel).
+// Segment 7 = mic mute toggle (vanilla keyboard B / InputKey.ToggleMute equivalent): flips
+// DataDirector.toggleMute, which vanilla RPCs + displays itself. MP-only (greyed in solo).
 // Recreated per scene by Plugin (REPO wipes DontDestroyOnLoad at boot); Plugin also calls
 // ResetState() on scene load so no stale faces carry across levels.
 internal class EmoteWheel : MonoBehaviour
@@ -28,9 +30,23 @@ internal class EmoteWheel : MonoBehaviour
         AccessTools.MethodDelegate<Action<PlayerExpression, int, float, bool>>(
             AccessTools.Method(typeof(PlayerExpression), "DoExpression"));
 
+    // DataDirector.toggleMute is internal — resolved guarded so a renamed toggleMute field
+    // degrades just the mute slot to a warn-once no-op. (The three field initializers above
+    // stay unguarded on purpose: they are load-bearing — the wheel is dead without them —
+    // while mute is an optional slot.)
+    private static readonly AccessTools.FieldRef<DataDirector, bool> ToggleMuteRef;
+
+    static EmoteWheel()
+    {
+        try { ToggleMuteRef = AccessTools.FieldRefAccess<DataDirector, bool>("toggleMute"); }
+        catch { ToggleMuteRef = null; } // warned on first pick
+    }
+
     internal static bool Open; // read by LookPatch to suppress stick look + aim assist
 
-    private const int SegmentCount = 6;
+    private const int SegmentCount = 7;     // 6 expressions + the mute slot
+    private const int ExpressionCount = 6;  // vanilla expressions stay segments 1..6
+    private const int MuteSegment = 7;
     private const float MinDeflection = 0.35f; // selection threshold floor (drift guard)
 
     // Wheel-toggled expressions: index (1-based) -> seconds remaining (infinity when the
@@ -40,12 +56,13 @@ internal class EmoteWheel : MonoBehaviour
     private static readonly List<int> Expired = new List<int>(); // scratch, avoids alloc per frame
     private static string[] _labels; // [1..6]; rebuilt per scene
     private static bool _warned;
+    private static bool _muteWarned; // mute failures warn independently of expression failures
 
-    private int _hovered; // 0 = none, 1..6 = segment (== expression index)
+    private int _hovered; // 0 = none, 1..6 = expression segment (== expression index), 7 = mute
     private static Transform _previewCam; // camera filming the mini expression avatar
     private static bool _camMoved;        // camera is currently reframed by us
     private static Vector3 _camHomeLocal; // its cached vanilla localPosition
-    private GUIStyle _title, _label, _labelHover, _labelActive;
+    private GUIStyle _title, _label, _labelHover, _labelActive, _labelDisabled;
 
     // Called by Plugin.OnSceneLoaded: forget toggled faces + refresh label cache.
     internal static void ResetState()
@@ -72,7 +89,8 @@ internal class EmoteWheel : MonoBehaviour
         {
             int pick = _hovered;
             Close();
-            if (pick != 0) ToggleExpression(pick);
+            if (pick == MuteSegment) ToggleMute();
+            else if (pick != 0) ToggleExpression(pick);
         }
 
         // Vanilla toggle semantics: actively-toggled expressions must be driven EVERY frame
@@ -219,7 +237,7 @@ internal class EmoteWheel : MonoBehaviour
         return PlayerAvatar.instance != null;
     }
 
-    // Segment 1 at 12 o'clock, clockwise (1=up, 2=upper-right, ... 6=upper-left).
+    // Segment 1 at 12 o'clock, clockwise, SegmentCount equal slices (360/7 = ~51.4 deg each).
     // 0 = none (stick inside threshold). Stick up = +y; Atan2(x, y): 0deg = up, +90 = right.
     private int HoveredSegment(Vector2 stick)
     {
@@ -227,7 +245,8 @@ internal class EmoteWheel : MonoBehaviour
         if (stick.magnitude < threshold) return 0;
         float angle = Mathf.Atan2(stick.x, stick.y) * Mathf.Rad2Deg;
         if (angle < 0f) angle += 360f;
-        return Mathf.FloorToInt(((angle + 30f) % 360f) / 60f) + 1;
+        float segAngle = 360f / SegmentCount;
+        return Mathf.FloorToInt(((angle + segAngle / 2f) % 360f) / segAngle) + 1;
     }
 
     private static void ToggleExpression(int index)
@@ -265,13 +284,57 @@ internal class EmoteWheel : MonoBehaviour
         }
     }
 
+    // Flip vanilla's mic mute. The one field IS the whole feature: PlayerVoiceChat polls it
+    // per frame and on change RPCs ToggleMuteRPC (OthersBuffered) + drops TransmitEnabled
+    // (PlayerVoiceChat.cs:511-524); ToggleMuteUI shows the on-screen icon. Same flag the
+    // keyboard B key flips (DataDirector.cs:138-141), so both inputs stay in sync.
+    private static void ToggleMute()
+    {
+        // Solo: vanilla force-resets the flag every frame (DataDirector.cs:143-146) — no-op.
+        if (!SemiFunc.IsMultiplayer()) return;
+        var dd = DataDirector.instance;
+        if (dd == null) return;
+        if (ToggleMuteRef == null)
+        {
+            if (!_muteWarned)
+            {
+                Plugin.Log.LogWarning("[EmoteWheel] DataDirector.toggleMute not found -- mute slot disabled.");
+                _muteWarned = true;
+            }
+            return;
+        }
+        try
+        {
+            ref bool muted = ref ToggleMuteRef(dd);
+            muted = !muted;
+            Plugin.Log.LogDebug($"[EmoteWheel] Mic mute {(muted ? "ON" : "OFF")}");
+        }
+        catch (Exception e)
+        {
+            if (!_muteWarned)
+            {
+                Plugin.Log.LogWarning($"[EmoteWheel] Mute toggle failed: {e.Message}");
+                _muteWarned = true;
+            }
+        }
+    }
+
+    // Live mute state for the wheel label; false on any failure (label just shows "Mute Mic").
+    private static bool IsMuted()
+    {
+        var dd = DataDirector.instance;
+        if (dd == null || ToggleMuteRef == null) return false;
+        try { return ToggleMuteRef(dd); } catch { return false; }
+    }
+
     private void OnGUI()
     {
         if (!Open) return;
         EnsureStyles();
         EnsureLabels();
 
-        float cx = Screen.width / 2f, cy = Screen.height / 2f, radius = 170f;
+        // 190: at 7 segments the bottom chip pair (154.3/205.7 deg) needs >=184px to not overlap (160-wide chips)
+        float cx = Screen.width / 2f, cy = Screen.height / 2f, radius = 190f;
 
         // Dim backdrop, lighter than the cheat sheet's 0.6 so gameplay stays visible.
         GUI.color = new Color(0f, 0f, 0f, 0.35f);
@@ -280,21 +343,37 @@ internal class EmoteWheel : MonoBehaviour
 
         GUI.Label(new Rect(cx - 200f, cy - radius - 70f, 400f, 30f), "Emotes", _title);
 
+        float segAngle = 360f / SegmentCount;
         for (int i = 1; i <= SegmentCount; i++)
         {
-            float rad = (i - 1) * 60f * Mathf.Deg2Rad;
+            float rad = (i - 1) * segAngle * Mathf.Deg2Rad;
             float x = cx + Mathf.Sin(rad) * radius;
             float y = cy - Mathf.Cos(rad) * radius;
             var rect = new Rect(x - 80f, y - 20f, 160f, 40f);
 
-            GUI.color = i == _hovered
+            bool hoverable = i != MuteSegment || SemiFunc.IsMultiplayer();
+            GUI.color = i == _hovered && hoverable
                 ? new Color(0.30f, 0.26f, 0.08f, 0.95f)   // hovered: dark gold chip
                 : new Color(0.10f, 0.10f, 0.10f, 0.90f);  // normal: dark chip
             GUI.DrawTexture(rect, Texture2D.whiteTexture);
             GUI.color = Color.white;
 
-            GUIStyle style = i == _hovered ? _labelHover : (Active.ContainsKey(i) ? _labelActive : _label);
-            GUI.Label(rect, _labels[i], style);
+            if (i == MuteSegment)
+            {
+                // Live label/state: mute is runtime state (and MP-only), so it can't use the
+                // per-scene label cache. String literals only — no per-frame allocation.
+                bool mp = SemiFunc.IsMultiplayer();
+                bool muted = mp && IsMuted();
+                string muteLabel = !mp ? "Mute (MP only)" : (muted ? "Unmute Mic" : "Mute Mic");
+                GUIStyle muteStyle = !mp ? _labelDisabled
+                    : (i == _hovered ? _labelHover : (muted ? _labelActive : _label));
+                GUI.Label(rect, muteLabel, muteStyle);
+            }
+            else
+            {
+                GUIStyle style = i == _hovered ? _labelHover : (Active.ContainsKey(i) ? _labelActive : _label);
+                GUI.Label(rect, _labels[i], style);
+            }
         }
     }
 
@@ -308,7 +387,7 @@ internal class EmoteWheel : MonoBehaviour
         {
             expressions = avatar.playerExpression.expressions;
         }
-        for (int i = 1; i <= SegmentCount; i++)
+        for (int i = 1; i <= ExpressionCount; i++)
         {
             string name = null;
             if (expressions != null && i < expressions.Count && expressions[i] != null)
@@ -330,5 +409,7 @@ internal class EmoteWheel : MonoBehaviour
         _labelHover.normal.textColor = new Color(1f, 0.85f, 0.3f);   // gold (matches overlay _key)
         _labelActive = new GUIStyle(_label) { fontStyle = FontStyle.Bold };
         _labelActive.normal.textColor = new Color(0.55f, 0.8f, 1f);  // light blue = currently active
+        _labelDisabled = new GUIStyle(_label);
+        _labelDisabled.normal.textColor = new Color(0.5f, 0.5f, 0.5f); // greyed: solo, mute is MP-only
     }
 }
