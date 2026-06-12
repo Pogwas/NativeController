@@ -49,6 +49,12 @@ internal class EmoteWheel : MonoBehaviour
     private const int MuteSegment = 7;
     private const float MinDeflection = 0.35f; // selection threshold floor (drift guard)
 
+    // Chip placement, degrees clockwise from 12 o'clock (index = segment, [0] unused):
+    // the 6 emotes fan down the RIGHT half (15..165, 30 deg apart), Mute sits ALONE on the
+    // LEFT at 9 o'clock (user layout 2026-06-12). At radius 190 the tightest emote pair
+    // (15/45 deg) is 49px apart vertically vs the 40px chip height — no overlap.
+    private static readonly float[] SegmentAngles = { 0f, 15f, 45f, 75f, 105f, 135f, 165f, 270f };
+
     // Wheel-toggled expressions: index (1-based) -> seconds remaining (infinity when the
     // duration config is 0 = stay until re-picked). Static so Plugin.ResetState can clear
     // on scene load even though the GameObject survives scene changes.
@@ -237,16 +243,22 @@ internal class EmoteWheel : MonoBehaviour
         return PlayerAvatar.instance != null;
     }
 
-    // Segment 1 at 12 o'clock, clockwise, SegmentCount equal slices (360/7 = ~51.4 deg each).
-    // 0 = none (stick inside threshold). Stick up = +y; Atan2(x, y): 0deg = up, +90 = right.
+    // Hover = nearest chip by angular distance (no dead wedges between chips, and the
+    // asymmetric layout needs no slice math). 0 = none (stick inside threshold).
+    // Stick up = +y; Atan2(x, y): 0deg = up, +90 = right.
     private int HoveredSegment(Vector2 stick)
     {
         float threshold = Mathf.Max(Plugin.StickDeadzone.Value, MinDeflection);
         if (stick.magnitude < threshold) return 0;
         float angle = Mathf.Atan2(stick.x, stick.y) * Mathf.Rad2Deg;
-        if (angle < 0f) angle += 360f;
-        float segAngle = 360f / SegmentCount;
-        return Mathf.FloorToInt(((angle + segAngle / 2f) % 360f) / segAngle) + 1;
+        int best = 0;
+        float bestDist = float.MaxValue;
+        for (int i = 1; i <= SegmentCount; i++)
+        {
+            float d = Mathf.Abs(Mathf.DeltaAngle(angle, SegmentAngles[i]));
+            if (d < bestDist) { bestDist = d; best = i; }
+        }
+        return best;
     }
 
     private static void ToggleExpression(int index)
@@ -333,7 +345,6 @@ internal class EmoteWheel : MonoBehaviour
         EnsureStyles();
         EnsureLabels();
 
-        // 190: at 7 segments the bottom chip pair (154.3/205.7 deg) needs >=184px to not overlap (160-wide chips)
         float cx = Screen.width / 2f, cy = Screen.height / 2f, radius = 190f;
 
         // Dim backdrop, lighter than the cheat sheet's 0.6 so gameplay stays visible.
@@ -343,10 +354,9 @@ internal class EmoteWheel : MonoBehaviour
 
         GUI.Label(new Rect(cx - 200f, cy - radius - 70f, 400f, 30f), "Emotes", _title);
 
-        float segAngle = 360f / SegmentCount;
         for (int i = 1; i <= SegmentCount; i++)
         {
-            float rad = (i - 1) * segAngle * Mathf.Deg2Rad;
+            float rad = SegmentAngles[i] * Mathf.Deg2Rad;
             float x = cx + Mathf.Sin(rad) * radius;
             float y = cy - Mathf.Cos(rad) * radius;
             var rect = new Rect(x - 80f, y - 20f, 160f, 40f);
