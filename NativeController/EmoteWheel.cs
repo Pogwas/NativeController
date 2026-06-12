@@ -30,8 +30,10 @@ internal class EmoteWheel : MonoBehaviour
         AccessTools.MethodDelegate<Action<PlayerExpression, int, float, bool>>(
             AccessTools.Method(typeof(PlayerExpression), "DoExpression"));
 
-    // DataDirector.toggleMute is internal -- resolved guarded so a renamed field degrades the
-    // mute slot to a warn-once no-op instead of faulting the whole type on first use.
+    // DataDirector.toggleMute is internal — resolved guarded so a renamed toggleMute field
+    // degrades just the mute slot to a warn-once no-op. (The three field initializers above
+    // stay unguarded on purpose: they are load-bearing — the wheel is dead without them —
+    // while mute is an optional slot.)
     private static readonly AccessTools.FieldRef<DataDirector, bool> ToggleMuteRef;
 
     static EmoteWheel()
@@ -54,6 +56,7 @@ internal class EmoteWheel : MonoBehaviour
     private static readonly List<int> Expired = new List<int>(); // scratch, avoids alloc per frame
     private static string[] _labels; // [1..6]; rebuilt per scene
     private static bool _warned;
+    private static bool _muteWarned; // mute failures warn independently of expression failures
 
     private int _hovered; // 0 = none, 1..6 = expression segment (== expression index), 7 = mute
     private static Transform _previewCam; // camera filming the mini expression avatar
@@ -287,16 +290,16 @@ internal class EmoteWheel : MonoBehaviour
     // keyboard B key flips (DataDirector.cs:138-141), so both inputs stay in sync.
     private static void ToggleMute()
     {
-        // Solo: vanilla force-resets the flag every frame (DataDirector.cs:143-146) -- no-op.
+        // Solo: vanilla force-resets the flag every frame (DataDirector.cs:143-146) — no-op.
         if (!SemiFunc.IsMultiplayer()) return;
         var dd = DataDirector.instance;
         if (dd == null) return;
         if (ToggleMuteRef == null)
         {
-            if (!_warned)
+            if (!_muteWarned)
             {
                 Plugin.Log.LogWarning("[EmoteWheel] DataDirector.toggleMute not found -- mute slot disabled.");
-                _warned = true;
+                _muteWarned = true;
             }
             return;
         }
@@ -308,10 +311,10 @@ internal class EmoteWheel : MonoBehaviour
         }
         catch (Exception e)
         {
-            if (!_warned)
+            if (!_muteWarned)
             {
                 Plugin.Log.LogWarning($"[EmoteWheel] Mute toggle failed: {e.Message}");
-                _warned = true;
+                _muteWarned = true;
             }
         }
     }
@@ -330,7 +333,8 @@ internal class EmoteWheel : MonoBehaviour
         EnsureStyles();
         EnsureLabels();
 
-        float cx = Screen.width / 2f, cy = Screen.height / 2f, radius = 170f;
+        // 190: at 7 segments the bottom chip pair (154.3/205.7 deg) needs >=184px to not overlap (160-wide chips)
+        float cx = Screen.width / 2f, cy = Screen.height / 2f, radius = 190f;
 
         // Dim backdrop, lighter than the cheat sheet's 0.6 so gameplay stays visible.
         GUI.color = new Color(0f, 0f, 0f, 0.35f);
@@ -347,7 +351,8 @@ internal class EmoteWheel : MonoBehaviour
             float y = cy - Mathf.Cos(rad) * radius;
             var rect = new Rect(x - 80f, y - 20f, 160f, 40f);
 
-            GUI.color = i == _hovered
+            bool hoverable = i != MuteSegment || SemiFunc.IsMultiplayer();
+            GUI.color = i == _hovered && hoverable
                 ? new Color(0.30f, 0.26f, 0.08f, 0.95f)   // hovered: dark gold chip
                 : new Color(0.10f, 0.10f, 0.10f, 0.90f);  // normal: dark chip
             GUI.DrawTexture(rect, Texture2D.whiteTexture);
@@ -356,7 +361,7 @@ internal class EmoteWheel : MonoBehaviour
             if (i == MuteSegment)
             {
                 // Live label/state: mute is runtime state (and MP-only), so it can't use the
-                // per-scene label cache. String literals only -- no per-frame allocation.
+                // per-scene label cache. String literals only — no per-frame allocation.
                 bool mp = SemiFunc.IsMultiplayer();
                 bool muted = mp && IsMuted();
                 string muteLabel = !mp ? "Mute (MP only)" : (muted ? "Unmute Mic" : "Mute Mic");
