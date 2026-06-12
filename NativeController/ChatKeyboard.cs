@@ -8,7 +8,10 @@ namespace NativeController;
 // On-screen chat keyboard front-end: when the PAD opens vanilla chat (Select), show the
 // shared OSK panel (PadKeyboardCore) over vanilla's live message. A types the hovered key
 // into vanilla (ChatManager.AddLetterToChat), X = space, Start = send (ForceConfirmChat ->
-// vanilla network sync + TTS), Select = close. B = backspace via the ChatDelete gamepad
+// vanilla network sync + TTS), Select = close.
+// Right-stick flick up/down recalls sent-message history (vanilla's Up/Down arrows);
+// look is suppressed while the panel is open (LookPatch), same precedent as EmoteWheel.
+// B = backspace via the ChatDelete gamepad
 // binding (GamepadBindingsPatch) -- vanilla consumes it natively, one char per press like
 // vanilla's keyboard backspace.
 // Vanilla owns ALL message state; this class is purely an input device + panel owner.
@@ -23,6 +26,10 @@ internal class ChatKeyboard : MonoBehaviour
         AccessTools.FieldRefAccess<ChatManager, bool>("chatActive");
     private static readonly AccessTools.FieldRef<ChatManager, string> ChatMessageRef =
         AccessTools.FieldRefAccess<ChatManager, string>("chatMessage");
+    private static readonly AccessTools.FieldRef<ChatManager, System.Collections.Generic.List<string>> ChatHistoryRef =
+        AccessTools.FieldRefAccess<ChatManager, System.Collections.Generic.List<string>>("chatHistory");
+    private static readonly AccessTools.FieldRef<ChatManager, int> ChatHistoryIndexRef =
+        AccessTools.FieldRefAccess<ChatManager, int>("chatHistoryIndex");
     // ChatState is a public nested enum; StateSet is private -> open instance delegate.
     private static readonly Action<ChatManager, ChatManager.ChatState> StateSet =
         AccessTools.MethodDelegate<Action<ChatManager, ChatManager.ChatState>>(
@@ -32,14 +39,18 @@ internal class ChatKeyboard : MonoBehaviour
 
     private const int MaxChatLength = 50;   // vanilla cap (ChatManager.cs:428)
     private const float PadOpenWindow = 0.25f; // Select-press recency that counts as "pad opened chat"
+    private const float FlickFire = 0.6f;   // |rightStick.y| that triggers one history step
+    private const float FlickRearm = 0.3f;  // must return below this before the next step (hysteresis)
 
     private readonly PadKeyboardCore _core = new PadKeyboardCore(
         hasSpace: true, confirmLabel: "SEND", confirmVerb: "send", closeVerb: "close",
-        hideLabel: "CLOSE"); // navigable close key (playtest 2026-06-11: Select-to-close alone wasn't discoverable)
+        hideLabel: "CLOSE", // navigable close key (playtest 2026-06-11: Select-to-close alone wasn't discoverable)
+        extraHint: kind => ButtonNames.Of(ButtonNames.Control.RStick, kind) + " ↑↓ history");
 
     private bool _selectArmed;              // ignore the Select press that opened chat
     private float _lastSelectPress = -10f;  // pad-open detection (Update-order safe)
     private bool _prevChatActive;
+    private bool _flickArmed; // false until the stick returns to center (no fire on open)
     private static bool _warned;
 
     private void Awake()
@@ -93,6 +104,7 @@ internal class ChatKeyboard : MonoBehaviour
                 Open = true;
                 _core.Reset();
                 _selectArmed = false;
+                _flickArmed = false; // require center before the first history flick
             }
         }
         if (!Open || gp == null) return;
@@ -105,6 +117,7 @@ internal class ChatKeyboard : MonoBehaviour
         try
         {
             _core.HandleInput(gp);
+            HandleHistoryFlick(gp, chat);
             // Select: close on RELEASE, not press -- Select is also InputKey.Chat, and a
             // press is visible to vanilla's StateInactive for the whole frame (either
             // Update order), which would instantly REOPEN the chat we just closed.
@@ -134,6 +147,48 @@ internal class ChatKeyboard : MonoBehaviour
         ChatUI.instance.SemiUITextFlashColor(Color.yellow, 0.2f);
         ChatUI.instance.SemiUISpringShakeY(2f, 5f, 0.2f);
         MenuManager.instance.MenuEffectClick(MenuManager.MenuClickEffectType.Tick, null, 2f, 0.2f, soundOnly: true);
+    }
+
+    // Right-stick flick = vanilla's Up/Down arrow history recall (ChatManager.cs:376-407).
+    // One step per flick with hysteresis -- vanilla is GetKeyDown, discrete per press, so
+    // there is no hold-repeat. Look is suppressed while Open (LookPatch), freeing the stick.
+    private void HandleHistoryFlick(Gamepad gp, ChatManager chat)
+    {
+        if (!Plugin.ChatHistoryRecallEnabled.Value) return;
+        float y = gp.rightStick.ReadValue().y;
+        if (Mathf.Abs(y) < FlickRearm)
+        {
+            _flickArmed = true;
+            return;
+        }
+        if (!_flickArmed || Mathf.Abs(y) < FlickFire) return;
+        _flickArmed = false;
+        HistoryStep(chat, older: y > 0f); // flick up = older, down = newer (vanilla's directions)
+    }
+
+    // Mirror of vanilla's history block, both directions (ChatManager.cs:376-407), including
+    // its exact wrap math and feedback. Vanilla resets chatHistoryIndex on chat open.
+    private void HistoryStep(ChatManager chat, bool older)
+    {
+        var history = ChatHistoryRef(chat);
+        if (history == null || history.Count == 0) return;
+        ref int index = ref ChatHistoryIndexRef(chat);
+        if (older)
+        {
+            if (index > 0) index--;
+            else index = history.Count - 1;
+        }
+        else
+        {
+            if (index < history.Count - 1) index++;
+            else index = 0;
+        }
+        string msg = history[index];
+        ChatMessageRef(chat) = msg;
+        chat.chatText.text = msg;
+        ChatUI.instance.SemiUITextFlashColor(Color.cyan, 0.2f);
+        ChatUI.instance.SemiUISpringShakeY(2f, 5f, 0.2f);
+        MenuManager.instance.MenuEffectClick(MenuManager.MenuClickEffectType.Tick, null, 1f, 0.2f, soundOnly: true);
     }
 
     // Mirror vanilla Confirm semantics (ChatManager.cs:460-468): non-empty -> Send;
