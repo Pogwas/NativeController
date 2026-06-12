@@ -25,9 +25,10 @@ internal class PadKeyboardCore
 
     internal Action<string> OnChar;  // "a".."z", "0".."9", "'", ",", ".", "?", "!", " "
     internal Action OnConfirm;       // the SEND/ENTER grid key and the Start button
+    internal Action OnClose;         // the optional HIDE grid key (front-ends with hasHide)
 
     private readonly bool _hasSpace;
-    private readonly string[] _specialKeys; // {"!","SPACE",confirmLabel} or {"!",confirmLabel}
+    private readonly string[] _specialKeys; // "!" + optional SPACE + optional HIDE + confirmLabel
     private readonly string _confirmVerb, _closeVerb;
 
     private int _row, _col;                 // cursor
@@ -39,10 +40,14 @@ internal class PadKeyboardCore
     private ControllerDetect.Kind _hintsKind;
     private bool _hintsBuilt;
 
-    internal PadKeyboardCore(bool hasSpace, string confirmLabel, string confirmVerb, string closeVerb)
+    internal PadKeyboardCore(bool hasSpace, string confirmLabel, string confirmVerb, string closeVerb, bool hasHide = false)
     {
         _hasSpace = hasSpace;
-        _specialKeys = hasSpace ? new[] { "!", "SPACE", confirmLabel } : new[] { "!", confirmLabel };
+        var keys = new System.Collections.Generic.List<string> { "!" };
+        if (hasSpace) keys.Add("SPACE");
+        if (hasHide) keys.Add("HIDE"); // navigable close key (playtest: the hint row alone wasn't discoverable)
+        keys.Add(confirmLabel);
+        _specialKeys = keys.ToArray();
         _confirmVerb = confirmVerb;
         _closeVerb = closeVerb;
     }
@@ -80,6 +85,7 @@ internal class PadKeyboardCore
             string k = _specialKeys[_col];
             if (k == "SPACE") OnChar?.Invoke(" ");
             else if (k == "!") OnChar?.Invoke("!");
+            else if (k == "HIDE") OnClose?.Invoke();
             else OnConfirm?.Invoke();
         }
         else
@@ -170,20 +176,16 @@ internal class PadKeyboardCore
             }
         }
 
-        // Special row: "!" small + wide keys splitting the remaining grid width.
+        // Special row: "!" small + the remaining keys splitting the rest of the grid width
+        // evenly (2-4 keys depending on hasSpace/hasHide; chat's 3-key layout is unchanged).
         float yS = y0 + pad + SpecialRow * (keyW + gap);
-        if (_hasSpace)
+        int nKeys = _specialKeys.Length;
+        float wide = (gridW - keyW - (nKeys - 1) * gap) / (nKeys - 1);
+        DrawKey(new Rect(x0 + pad, yS, keyW, keyW), "!", _row == SpecialRow && _col == 0);
+        for (int i = 1; i < nKeys; i++)
         {
-            float wide = (gridW - keyW - 2 * gap) / 2f;
-            DrawKey(new Rect(x0 + pad, yS, keyW, keyW), "!", _row == SpecialRow && _col == 0);
-            DrawKey(new Rect(x0 + pad + keyW + gap, yS, wide, keyW), "SPACE", _row == SpecialRow && _col == 1);
-            DrawKey(new Rect(x0 + pad + keyW + gap + wide + gap, yS, wide, keyW), _specialKeys[2], _row == SpecialRow && _col == 2);
-        }
-        else
-        {
-            float wide = gridW - keyW - gap;
-            DrawKey(new Rect(x0 + pad, yS, keyW, keyW), "!", _row == SpecialRow && _col == 0);
-            DrawKey(new Rect(x0 + pad + keyW + gap, yS, wide, keyW), _specialKeys[1], _row == SpecialRow && _col == 1);
+            DrawKey(new Rect(x0 + pad + keyW + gap + (i - 1) * (wide + gap), yS, wide, keyW),
+                    _specialKeys[i], _row == SpecialRow && _col == i);
         }
 
         var kind = ControllerDetect.Current;

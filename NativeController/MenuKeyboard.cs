@@ -77,6 +77,16 @@ internal class MenuKeyboard : MonoBehaviour
         }
         if (!Open) return;
 
+        // Mouse takeover: hide WITHOUT latching _dismissed -- the panel sits over the lower
+        // screen (server rows etc.) and must never cover mouse browsing. MenuNavigator flips
+        // ControllerActive off on mouse movement; the next pad input flips it back on and the
+        // level-trigger above reopens the panel. (Playtest finding 2026-06-11.)
+        if (!MenuNavigator.ControllerActive)
+        {
+            Open = false;
+            return;
+        }
+
         // Target page swapped/deactivated under us: close now; if another field is live,
         // the level-trigger above reopens on the new target next frame.
         if ((_password != null && !_password.isActiveAndEnabled) ||
@@ -119,9 +129,11 @@ internal class MenuKeyboard : MonoBehaviour
         if (_core == null || _coreHasSpace != hasSpace)
         {
             _core = new PadKeyboardCore(hasSpace, confirmLabel: "ENTER",
-                                        confirmVerb: "confirm", closeVerb: "hide");
+                                        confirmVerb: "confirm", closeVerb: "hide",
+                                        hasHide: true); // navigable HIDE key (playtest: hint row alone wasn't discoverable)
             _core.OnChar = TypeChar;
             _core.OnConfirm = Confirm;
+            _core.OnClose = Dismiss;
             _coreHasSpace = hasSpace;
         }
         _core.Reset();
