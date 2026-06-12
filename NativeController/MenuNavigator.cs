@@ -380,14 +380,20 @@ internal class MenuNavigator : MonoBehaviour
             if (sameRow != null) return sameRow;
         }
 
-        // Pass 1: smallest forward distance (the nearest row/step).
+        // Pass 1: smallest forward distance (the nearest row/step). On VERTICAL presses,
+        // same-row wobble must not count as a step: the lobby menu's columns sit a few units
+        // staggered (MODS is lower than CUSTOMIZE), so a 0.5 threshold made the side-neighbour
+        // the "nearest row" and the +14 band then excluded the real row below (playtest bug
+        // 2026-06-11: DOWN from CUSTOMIZE could not reach LEAVE). 12f = the same-row band
+        // Pass 0 already uses for horizontal presses.
+        float minStep = dir.y != 0f ? 12f : 0.5f;
         float minAlong = float.MaxValue;
         foreach (var c in candidates)
         {
             if (c == from) continue;
             Vector2 delta = ScreenPos(c) - origin;
             float along = delta.x * dir.x + delta.y * dir.y;
-            if (along > 0.5f && along < minAlong) minAlong = along;
+            if (along > minStep && along < minAlong) minAlong = along;
         }
         if (minAlong == float.MaxValue) return null;
 
@@ -405,7 +411,7 @@ internal class MenuNavigator : MonoBehaviour
             if (c == from) continue;
             Vector2 delta = ScreenPos(c) - origin;
             float along = delta.x * dir.x + delta.y * dir.y;
-            if (along <= 0.5f || along > band) continue;
+            if (along <= minStep || along > band) continue;
             float perp = Mathf.Abs(delta.x * dir.y - delta.y * dir.x);
             float score = perp * 10000f + along; // lateral offset dominates; along breaks ties
             if (score < bestScore) { bestScore = score; best = c; }
