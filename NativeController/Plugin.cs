@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -14,7 +14,7 @@ public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.pogwas.nativecontroller";
     public const string PluginName = "Native Controller";
-    public const string PluginVersion = "0.4.0";
+    public const string PluginVersion = "0.5.0";
 
     internal static Plugin Instance;
     internal static ManualLogSource Log;
@@ -86,7 +86,7 @@ public class Plugin : BaseUnityPlugin
         EmoteZoomOut = Config.Bind("Emote Wheel", "PreviewZoomOut", 0.5f,
             new ConfigDescription("How far the face-preview camera pulls back while the wheel is open (metres). Tune live in the in-game mod settings until the whole face is visible.", new AcceptableValueRange<float>(0f, 3f)));
         EmoteCameraLower = Config.Bind("Emote Wheel", "PreviewCameraLower", 0.25f,
-            new ConfigDescription("How far the face-preview camera drops while the wheel is open (metres) — raises the head in the picture. Tune live alongside PreviewZoomOut.", new AcceptableValueRange<float>(-1f, 1f)));
+            new ConfigDescription("How far the face-preview camera drops while the wheel is open (metres) â€” raises the head in the picture. Tune live alongside PreviewZoomOut.", new AcceptableValueRange<float>(-1f, 1f)));
         EmoteDurationSeconds = Config.Bind("Emote Wheel", "EmoteDurationSeconds", 5f,
             new ConfigDescription("How long a picked emote stays on your face before returning to normal. 0 = it stays until you pick it again on the wheel.", new AcceptableValueRange<float>(0f, 30f)));
         PromptsEnabled = Config.Bind("Prompts", "Enabled", true,
@@ -94,7 +94,7 @@ public class Plugin : BaseUnityPlugin
         ControllerKeyTags = Config.Bind("Prompts", "ControllerKeyTags", true,
             "Show controller buttons inside the game's own key hints (e.g. SHOTGUN [X] instead of [E]) while the controller is the active input.");
         InventoryArrows = Config.Bind("Prompts", "InventoryArrows", true,
-            "Show which D-pad arrow equips which inventory slot (← ↑ → above the three slots). Only while the controller is the active input.");
+            "Show which D-pad arrow equips which inventory slot (â† â†‘ â†’ above the three slots). Only while the controller is the active input.");
         SprintToggle = Config.Bind("Gamepad", "ToggleSprint", true,
             "Press Sprint (L3) once to keep sprinting; it stops when stamina runs out, you stop moving, or you press it again. Applies while a gamepad is connected (also affects keyboard Sprint).");
         GrabToggle = Config.Bind("Gamepad", "ToggleGrab", true,
@@ -119,7 +119,7 @@ public class Plugin : BaseUnityPlugin
         AimAssistGain = Config.Bind("Aim Assist", "Gain", 0.07f,
             new ConfigDescription("Fraction of the remaining angle the nudge closes per frame (before clamping). Higher = quicker settle. Kept tiny on purpose.", new AcceptableValueRange<float>(0f, 0.5f)));
         AimAssistMaxFraction = Config.Bind("Aim Assist", "MaxFraction", 0.30f,
-            new ConfigDescription("While you are turning, the assist is capped at this fraction of YOUR OWN look this frame. Below 1.0 it can never out-turn you — this is the no-lock guarantee.", new AcceptableValueRange<float>(0f, 0.9f)));
+            new ConfigDescription("While you are turning, the assist is capped at this fraction of YOUR OWN look this frame. Below 1.0 it can never out-turn you â€” this is the no-lock guarantee.", new AcceptableValueRange<float>(0f, 0.9f)));
         AimAssistMaxDegPerFrame = Config.Bind("Aim Assist", "MaxDegPerFrame", 0.5f,
             new ConfigDescription("Absolute ceiling (degrees/frame) on the nudge, so a fast flick is never visibly curved.", new AcceptableValueRange<float>(0.05f, 3f)));
         AimAssistIdleDrift = Config.Bind("Aim Assist", "IdleDrift", 0.10f,
@@ -127,7 +127,7 @@ public class Plugin : BaseUnityPlugin
         AimAssistActiveThreshold = Config.Bind("Aim Assist", "ActiveThreshold", 0.05f,
             new ConfigDescription("Per-frame look (degrees) above which you count as 'turning' (uses the MaxFraction cap) vs 'stopped' (uses IdleDrift).", new AcceptableValueRange<float>(0f, 1f)));
         AimAssistDeadZone = Config.Bind("Aim Assist", "DeadZone", 1.5f,
-            new ConfigDescription("Inside this angle (degrees) of the target the assist does nothing — removes the hard settle/snap and lets your own aim finish the last bit.", new AcceptableValueRange<float>(0f, 8f)));
+            new ConfigDescription("Inside this angle (degrees) of the target the assist does nothing â€” removes the hard settle/snap and lets your own aim finish the last bit.", new AcceptableValueRange<float>(0f, 8f)));
         AimAssistItemRange = Config.Bind("Aim Assist", "ItemRange", 5f,
             new ConfigDescription("Max distance (metres) to assist toward an item.", new AcceptableValueRange<float>(0f, 15f)));
         AimAssistEnemyRange = Config.Bind("Aim Assist", "EnemyRange", 25f,
@@ -144,7 +144,7 @@ public class Plugin : BaseUnityPlugin
         if (Chainloader.PluginInfos.ContainsKey("nickklmao.menulib"))
         {
             SettingsMenuEntry.Register();
-            Log.LogInfo("[Gamepad] MenuLib detected — added Controller Layout to the Settings menu.");
+            Log.LogInfo("[Gamepad] MenuLib detected â€” added Controller Layout to the Settings menu.");
         }
 
         SceneManager.sceneLoaded += OnSceneLoaded;

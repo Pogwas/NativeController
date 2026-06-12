@@ -80,8 +80,11 @@ Please open an [Issue](https://github.com/Pogwas/NativeController/issues) and in
 
 ### 0.5.0
 
-- **Menu text fields on pad** — lobby name, save rename, server search and lobby password can now be typed with the controller: the on-screen keyboard auto-opens on those screens (A types, B deletes, X space, Start confirms, HIDE key or Back/View hides it, auto-hides when you switch to the mouse). Config: `[Menu Keyboard] Enabled`.
-- **Server browser & saves on pad** — server rows, the page arrows, and save files are now selectable with the controller (they use a different widget type the menu navigation couldn't see before). Also fixed DOWN sometimes sliding sideways on staggered menus like the lobby screen.
+- **Menu text fields on pad** — lobby name, save rename, server search and password screens auto-open an on-screen keyboard on controller: A types, B deletes, X space, Start/ENTER confirms, HIDE or Back/View tucks it away, auto-hides on mouse. Types through the game's own fields, so vanilla rules apply. Config: `[Menu Keyboard] Enabled` (size follows `[Chat Keyboard] Scale`).
+- **Server browser on pad** — rows, page arrows and the join popup are controller-navigable.
+- **Saved games on pad** — select, load, rename and delete saves; RIGHT from a save jumps to LOAD SAVE.
+- **Smarter menu navigation** — presses respect panel layouts, staggered menus navigate cleanly, the selection box snaps on long hops.
+- **Chat keyboard** — added a CLOSE key.
 
 ### 0.4.0
 
