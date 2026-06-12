@@ -154,8 +154,10 @@ internal class PadKeyboardCore
 
     private int ColsIn(int row) => row == SpecialRow ? _specialKeys.Length : CharRows[row].Length;
 
-    // Call from the front-end's OnGUI while its panel is open.
-    internal void Draw(float s)
+    // Call from the front-end's OnGUI while its panel is open. bottomOffset = clearance from
+    // the bottom edge, set per front-end (chat must clear vanilla's typed-message text, which
+    // renders in the bottom band; menu fields sit higher up and want the panel low).
+    internal void Draw(float s, float bottomOffset)
     {
         EnsureStyles(s);
 
@@ -165,8 +167,7 @@ internal class PadKeyboardCore
         float hintH = 22f * s;
         float panelH = 5 * (keyW + gap) - gap + 2 * pad + hintH;
         float x0 = (Screen.width - panelW) / 2f;
-        // Sit just above the bottom edge; chat text / menu fields render higher up the screen.
-        float y0 = Screen.height - panelH - 40f * s;
+        float y0 = Screen.height - panelH - bottomOffset;
         LastPanelTop = y0;
 
         GUI.color = new Color(0f, 0f, 0f, 0.55f);

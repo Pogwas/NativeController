@@ -35,6 +35,11 @@ internal class ChatLog : MonoBehaviour
     private float _layoutScreenW = -1f;
     private float[] _nameWidths;
 
+    // [Chat] FontSizeMultiplier applier state (vanilla typed-message text, ChatManager.chatText).
+    private TMPro.TextMeshProUGUI _sizedChatText; // the instance the multiplier was applied to
+    private float _chatTextBaseSize;              // vanilla's own size, captured per instance
+    private float _appliedMultiplier = -1f;
+
     internal static void Append(string name, string text)
     {
         Entries.Add(new Entry
@@ -45,6 +50,30 @@ internal class ChatLog : MonoBehaviour
         if (Entries.Count > MaxEntries) Entries.RemoveAt(0);
         _lastMessageTime = Time.unscaledTime;
         _entriesVersion++;
+    }
+
+    // Scales the game's own chat text (the message being typed). chatText is public on
+    // ChatManager; the HUD is a world-space canvas (quirk 8) so TMP fontSize is canvas-local
+    // and safe to scale. Re-applies automatically when the scene swaps the instance or the
+    // config changes; vanilla never touches fontSize at runtime (flash/shake only).
+    private void Update()
+    {
+        if (!Plugin.Enabled.Value) return;
+        var chat = ChatManager.instance;
+        var text = chat != null ? chat.chatText : null;
+        if (text == null) return;
+        if (!ReferenceEquals(text, _sizedChatText))
+        {
+            _sizedChatText = text;
+            _chatTextBaseSize = text.fontSize;
+            _appliedMultiplier = -1f;
+        }
+        float mult = Plugin.ChatFontSizeMultiplier.Value;
+        if (!Mathf.Approximately(mult, _appliedMultiplier))
+        {
+            _appliedMultiplier = mult;
+            text.fontSize = _chatTextBaseSize * mult;
+        }
     }
 
     private void OnGUI()

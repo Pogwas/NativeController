@@ -221,6 +221,8 @@ internal class MenuKeyboard : MonoBehaviour
     private void OnGUI()
     {
         if (!Open || _core == null) return;
-        _core.Draw(Plugin.ChatKeyboardScale.Value); // shared scale: both keyboards stay visually identical
+        // Shared scale: both keyboards stay visually identical. Menu fields render higher up
+        // the screen, so the menu panel keeps the original low anchor.
+        _core.Draw(Plugin.ChatKeyboardScale.Value, 40f * Plugin.ChatKeyboardScale.Value);
     }
 }
