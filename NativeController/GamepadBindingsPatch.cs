@@ -14,7 +14,7 @@ internal enum PadButton
 
 // Postfix on InputManager.InitializeInputs: additively bind <Gamepad>/* controls onto the game's
 // own InputActions. Keyboard/mouse bindings are left intact (purely additive).
-[HarmonyPatch(typeof(InputManager), "InitializeInputs")]
+[HarmonyPatch]
 internal static class GamepadBindingsPatch
 {
     private static InputManager _injected; // idempotency: only inject once per InputManager instance
@@ -41,6 +41,7 @@ internal static class GamepadBindingsPatch
         _ => null,
     };
 
+    [HarmonyPatch(typeof(InputManager), "InitializeInputs")]
     [HarmonyPostfix]
     public static void Postfix(InputManager __instance)
     {
@@ -80,6 +81,10 @@ internal static class GamepadBindingsPatch
                 _pttPath = PathOf(Plugin.PushToTalkButton.Value);
                 Bind(__instance, InputKey.PushToTalk, _pttPath);
             }
+            else
+            {
+                _pttPath = null;
+            }
             // Push/Pull (RB/LB) can't be done with a binding: the game reads InputKey.Push/Pull as a 2D
             // scroll axis (ReadValue<Vector2>().y), which a button can't drive. Handled instead by
             // PushPullPatch (a postfix on InputManager.KeyPullAndPush).
@@ -90,6 +95,25 @@ internal static class GamepadBindingsPatch
         {
             Plugin.Log.LogError($"[Gamepad] Binding injection failed: {e}");
         }
+    }
+
+    // Vanilla snapshots ALL bindings by index (SaveCurrentKeyBindings, run when leaving the
+    // Controls settings page) and re-applies them on boot (Start -> LoadKeyBindings ->
+    // ApplyBindingOverride). If the PTT config changed between sessions, that stale snapshot
+    // would silently override the fresh binding — re-assert ours after vanilla loads.
+    [HarmonyPatch(typeof(InputManager), "LoadKeyBindings")]
+    [HarmonyPostfix]
+    public static void LoadKeyBindingsPostfix()
+    {
+        if (Plugin.Enabled.Value) RebindPushToTalk();
+    }
+
+    // Same family: vanilla's per-key reset re-applies its boot-time snapshot of OUR binding.
+    [HarmonyPatch(typeof(InputManager), nameof(InputManager.ResetKeyToDefault))]
+    [HarmonyPostfix]
+    public static void ResetKeyToDefaultPostfix(InputKey key)
+    {
+        if (key == InputKey.PushToTalk && Plugin.Enabled.Value) RebindPushToTalk();
     }
 
     // Live rebind for [Gamepad] PushToTalkButton — REPOConfig dropdown changes apply without a
@@ -104,26 +128,32 @@ internal static class GamepadBindingsPatch
             if (a == null) return;
             bool wasEnabled = a.enabled;
             if (wasEnabled) a.Disable();
-            if (_pttPath != null)
+            try
             {
-                for (int i = 0; i < a.bindings.Count; i++)
+                if (_pttPath != null)
                 {
-                    if (a.bindings[i].path == _pttPath)
+                    for (int i = 0; i < a.bindings.Count; i++)
                     {
-                        a.ChangeBinding(i).Erase();
-                        break;
+                        if (a.bindings[i].path == _pttPath)
+                        {
+                            a.ChangeBinding(i).Erase();
+                            break;
+                        }
                     }
+                    _pttPath = null;
                 }
-                _pttPath = null;
+                PadButton button = Plugin.PushToTalkButton.Value;
+                if (button != PadButton.None)
+                {
+                    _pttPath = PathOf(button);
+                    a.AddBinding(_pttPath);
+                }
             }
-            PadButton button = Plugin.PushToTalkButton.Value;
-            if (button != PadButton.None)
+            finally
             {
-                _pttPath = PathOf(button);
-                a.AddBinding(_pttPath);
+                if (wasEnabled) a.Enable();
             }
-            if (wasEnabled) a.Enable();
-            Plugin.Log.LogInfo($"[Gamepad] PushToTalk binding -> {button}.");
+            Plugin.Log.LogInfo($"[Gamepad] PushToTalk binding -> {Plugin.PushToTalkButton.Value}.");
         }
         catch (Exception e)
         {
