@@ -93,7 +93,13 @@ internal class EmoteWheel : MonoBehaviour
         }
         else if (Open)
         {
-            int pick = _hovered;
+            // Fast picks race the stick travel: hover is sampled only while the d-pad is
+            // held, so a flick that finishes on the release frame would commit nothing
+            // (playtest 2026-06-12: quick re-picks of Mute felt ignored). Sample once more
+            // at release and prefer the live reading; deliberate center-to-cancel still
+            // works because a stick centered BEFORE release zeroes both readings.
+            int pick = HoveredSegment(gp.rightStick.ReadValue());
+            if (pick == 0) pick = _hovered;
             Close();
             if (pick == MuteSegment) ToggleMute();
             else if (pick != 0) ToggleExpression(pick);
