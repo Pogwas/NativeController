@@ -550,28 +550,42 @@ internal class MenuNavigator : MonoBehaviour
             if (sameRow >= 0) return sameRow;
         }
 
-        // Pass 1: smallest forward distance (the nearest row/step). On VERTICAL presses,
-        // same-row wobble must not count as a step: the lobby menu's columns sit a few units
-        // staggered (MODS is lower than CUSTOMIZE), so a 0.5 threshold made the side-neighbour
-        // the "nearest row" and the +14 band then excluded the real row below (playtest bug
-        // 2026-06-11: DOWN from CUSTOMIZE could not reach LEAVE). 12f = the same-row band
-        // Pass 0 already uses for horizontal presses.
+        // Pass 1+2 run TWICE: first restricted to a ±45° CONE around the press direction
+        // (along >= |perp|), then unrestricted as a fallback. The cone is what keeps panel
+        // layouts sane (playtest bug 2026-06-11, Saved Games page): UP from LOAD SAVE found
+        // the save file at a steep diagonal as the "nearest step" and the band then excluded
+        // CLICK TO RENAME straight above; with the cone, vertical presses stay inside a panel
+        // and horizontal presses cross panels — the console convention. The unrestricted
+        // fallback preserves every legit diagonal transition (e.g. a slider arrow down to the
+        // next row's toggle) when the cone has no target at all.
+        // On VERTICAL presses, same-row wobble must not count as a step: the lobby menu's
+        // columns sit a few units staggered (MODS is lower than CUSTOMIZE), so a 0.5 threshold
+        // made the side-neighbour the "nearest row". 12f = Pass 0's same-row band.
         float minStep = dir.y != 0f ? 12f : 0.5f;
+        int idx = BandPick(entries, origin, dir, minStep, coneOnly: true);
+        if (idx < 0) idx = BandPick(entries, origin, dir, minStep, coneOnly: false);
+        return idx;
+    }
+
+    // Nearest-step band pick: smallest forward distance sets the row, then min lateral offset
+    // within that row band wins. Band = nearest step + in-row wobble ONLY. The old
+    // multiplicative band (minAlong * 1.6) swallowed the row AFTER the target when the nearest
+    // gap was extra large — REPOConfig injects its pause-menu 'Mods' button 58 units below
+    // 'Main Menu' (normal rows: ~32), so 'Quit Game' (88) fell inside the 93-unit band and won
+    // on lateral alignment. NavDiag-verified 2026-06-09 against every working transition.
+    private static int BandPick(List<NavEntry> entries, Vector2 origin, Vector2 dir, float minStep, bool coneOnly)
+    {
         float minAlong = float.MaxValue;
         for (int i = 0; i < entries.Count; i++)
         {
             Vector2 delta = entries[i].Pos - origin;
             float along = delta.x * dir.x + delta.y * dir.y;
-            if (along > minStep && along < minAlong) minAlong = along;
+            if (along <= minStep) continue;
+            if (coneOnly && Mathf.Abs(delta.x * dir.y - delta.y * dir.x) > along) continue;
+            if (along < minAlong) minAlong = along;
         }
         if (minAlong == float.MaxValue) return -1;
 
-        // Pass 2: among candidates within a band of that nearest step, pick min lateral offset (then nearest).
-        // Band = nearest step + in-row wobble ONLY. The old multiplicative band (minAlong * 1.6) swallowed
-        // the row AFTER the target when the nearest gap was extra large — REPOConfig injects its pause-menu
-        // 'Mods' button 58 units below 'Main Menu' (normal rows: ~32), so 'Quit Game' (88) fell inside the
-        // 93-unit band and won on lateral alignment (text-center x of short 'Mods' wobbles ~19 left).
-        // NavDiag-verified 2026-06-09 against every working transition in the session log.
         float band = minAlong + 14f;
         int best = -1;
         float bestScore = float.MaxValue;
@@ -581,6 +595,7 @@ internal class MenuNavigator : MonoBehaviour
             float along = delta.x * dir.x + delta.y * dir.y;
             if (along <= minStep || along > band) continue;
             float perp = Mathf.Abs(delta.x * dir.y - delta.y * dir.x);
+            if (coneOnly && perp > along) continue;
             float score = perp * 10000f + along; // lateral offset dominates; along breaks ties
             if (score < bestScore) { bestScore = score; best = i; }
         }
