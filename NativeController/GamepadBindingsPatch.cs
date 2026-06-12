@@ -4,12 +4,42 @@ using UnityEngine.InputSystem;
 
 namespace NativeController;
 
+// User-facing pad buttons for one-off bindable configs (controller-agnostic names; South =
+// A/Cross, Select = Back/View). None = unbound.
+internal enum PadButton
+{
+    None, South, East, West, North, LB, RB, LT, RT, L3, R3,
+    DpadLeft, DpadUp, DpadRight, DpadDown, Start, Select,
+}
+
 // Postfix on InputManager.InitializeInputs: additively bind <Gamepad>/* controls onto the game's
 // own InputActions. Keyboard/mouse bindings are left intact (purely additive).
 [HarmonyPatch(typeof(InputManager), "InitializeInputs")]
 internal static class GamepadBindingsPatch
 {
     private static InputManager _injected; // idempotency: only inject once per InputManager instance
+    private static string _pttPath; // the <Gamepad> path we added to PushToTalk (null = none)
+
+    private static string PathOf(PadButton b) => b switch
+    {
+        PadButton.South => "<Gamepad>/buttonSouth",
+        PadButton.East => "<Gamepad>/buttonEast",
+        PadButton.West => "<Gamepad>/buttonWest",
+        PadButton.North => "<Gamepad>/buttonNorth",
+        PadButton.LB => "<Gamepad>/leftShoulder",
+        PadButton.RB => "<Gamepad>/rightShoulder",
+        PadButton.LT => "<Gamepad>/leftTrigger",
+        PadButton.RT => "<Gamepad>/rightTrigger",
+        PadButton.L3 => "<Gamepad>/leftStickPress",
+        PadButton.R3 => "<Gamepad>/rightStickPress",
+        PadButton.DpadLeft => "<Gamepad>/dpad/left",
+        PadButton.DpadUp => "<Gamepad>/dpad/up",
+        PadButton.DpadRight => "<Gamepad>/dpad/right",
+        PadButton.DpadDown => "<Gamepad>/dpad/down",
+        PadButton.Start => "<Gamepad>/start",
+        PadButton.Select => "<Gamepad>/select",
+        _ => null,
+    };
 
     [HarmonyPostfix]
     public static void Postfix(InputManager __instance)
@@ -41,6 +71,15 @@ internal static class GamepadBindingsPatch
             Bind(__instance, InputKey.Inventory1, "<Gamepad>/dpad/left");  // D-pad Left
             Bind(__instance, InputKey.Inventory2, "<Gamepad>/dpad/up");    // D-pad Up
             Bind(__instance, InputKey.Inventory3, "<Gamepad>/dpad/right"); // D-pad Right
+            // Optional push-to-talk binding ([Gamepad] PushToTalkButton, default None). Additive
+            // onto vanilla's real PushToTalk action — PlayerVoiceChat's InputHold sees the pad
+            // button exactly like keyboard V (PlayerVoiceChat.cs:514). The chosen button keeps
+            // its normal function too; that trade is the user's call.
+            if (Plugin.PushToTalkButton.Value != PadButton.None)
+            {
+                _pttPath = PathOf(Plugin.PushToTalkButton.Value);
+                Bind(__instance, InputKey.PushToTalk, _pttPath);
+            }
             // Push/Pull (RB/LB) can't be done with a binding: the game reads InputKey.Push/Pull as a 2D
             // scroll axis (ReadValue<Vector2>().y), which a button can't drive. Handled instead by
             // PushPullPatch (a postfix on InputManager.KeyPullAndPush).
@@ -50,6 +89,45 @@ internal static class GamepadBindingsPatch
         catch (Exception e)
         {
             Plugin.Log.LogError($"[Gamepad] Binding injection failed: {e}");
+        }
+    }
+
+    // Live rebind for [Gamepad] PushToTalkButton — REPOConfig dropdown changes apply without a
+    // restart. Erases the previously added pad binding by path, then adds the new one. A failed
+    // rebind must not break the existing bindings (worst case the old one stays until restart).
+    internal static void RebindPushToTalk()
+    {
+        if (_injected == null) return; // pre-init change: the initial bind reads the config
+        try
+        {
+            var a = _injected.GetAction(InputKey.PushToTalk);
+            if (a == null) return;
+            bool wasEnabled = a.enabled;
+            if (wasEnabled) a.Disable();
+            if (_pttPath != null)
+            {
+                for (int i = 0; i < a.bindings.Count; i++)
+                {
+                    if (a.bindings[i].path == _pttPath)
+                    {
+                        a.ChangeBinding(i).Erase();
+                        break;
+                    }
+                }
+                _pttPath = null;
+            }
+            PadButton button = Plugin.PushToTalkButton.Value;
+            if (button != PadButton.None)
+            {
+                _pttPath = PathOf(button);
+                a.AddBinding(_pttPath);
+            }
+            if (wasEnabled) a.Enable();
+            Plugin.Log.LogInfo($"[Gamepad] PushToTalk binding -> {button}.");
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.LogError($"[Gamepad] PushToTalk rebind failed: {e}");
         }
     }
 

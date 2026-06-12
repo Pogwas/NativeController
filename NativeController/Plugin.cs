@@ -37,6 +37,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> GrabToggle;
     internal static ConfigEntry<bool> CrouchToggle;
     internal static ConfigEntry<ControllerDetect.Style> GlyphStyle;
+    internal static ConfigEntry<PadButton> PushToTalkButton;
     internal static ConfigEntry<bool> ChatKeyboardEnabled;
     internal static ConfigEntry<float> ChatScale;
     internal static ConfigEntry<bool> ChatHistoryRecallEnabled;
@@ -108,6 +109,9 @@ public class Plugin : BaseUnityPlugin
             "Press Crouch (R3) once to stay crouched; press again to stand. Applies while a gamepad is connected (also affects keyboard Crouch).");
         GlyphStyle = Config.Bind("Gamepad", "GlyphStyle", ControllerDetect.Style.Auto,
             "Which controller's button names/glyphs to show. Auto = detect from the connected pad.");
+        PushToTalkButton = Config.Bind("Gamepad", "PushToTalkButton", PadButton.None,
+            "Hold this pad button to talk when the game's 'Push to Talk' audio setting is ON (works exactly like holding V). The chosen button KEEPS its normal function too — pick a conflict you can live with. None = off.");
+        PushToTalkButton.SettingChanged += (s, e) => GamepadBindingsPatch.RebindPushToTalk();
         ChatKeyboardEnabled = Config.Bind("Chat Keyboard", "Enabled", true,
             "Show an on-screen keyboard when you open chat with the controller (Back/View). D-pad / left stick moves, A types, B deletes, X = space, Start sends, Back/View closes. Chat opened from the keyboard never shows it.");
         // ONE size knob for every chat-UI surface (user 2026-06-12: separate keyboard-Scale +
