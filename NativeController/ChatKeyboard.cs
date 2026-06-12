@@ -45,9 +45,9 @@ internal class ChatKeyboard : MonoBehaviour
 
     private readonly PadKeyboardCore _core = new PadKeyboardCore(
         hasSpace: true, confirmLabel: "SEND",
-        hideLabel: "CLOSE", // navigable close key (playtest 2026-06-11: Select-to-close alone wasn't discoverable)
-        extraHint: kind => Plugin.ChatHistoryRecallEnabled.Value
-            ? ButtonNames.Of(ButtonNames.Control.RStick, kind) + " ↑↓ history" : null);
+        hideLabel: "CLOSE"); // navigable close key (playtest 2026-06-11: Select-to-close alone wasn't discoverable)
+        // No on-panel hint for the right-stick history recall -- user removed it 2026-06-12
+        // (documented in the README instead).
 
     private bool _selectArmed;              // ignore the Select press that opened chat
     private float _lastSelectPress = -10f;  // pad-open detection (Update-order safe)

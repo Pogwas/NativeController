@@ -44,8 +44,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> ChatLogEnabled;
     internal static ConfigEntry<float> ChatLogVisibleSeconds;
     internal static ConfigEntry<int> ChatLogMaxVisible;
-    internal static ConfigEntry<float> ChatLogScale;
-    internal static ConfigEntry<float> ChatFontSizeMultiplier;
+    internal static ConfigEntry<int> ChatLogFontSize;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
     internal static ConfigEntry<bool> AimAssistItems;
@@ -124,10 +123,8 @@ public class Plugin : BaseUnityPlugin
             new ConfigDescription("How long the chat box stays on screen after a message arrives (fades out at the end). 0 = only visible while chat is open.", new AcceptableValueRange<float>(0f, 30f)));
         ChatLogMaxVisible = Config.Bind("Chat Log", "MaxVisible", 8,
             new ConfigDescription("Maximum chat lines shown.", new AcceptableValueRange<int>(1, 15)));
-        ChatLogScale = Config.Bind("Chat Log", "Scale", 1.0f,
-            new ConfigDescription("Size of the chat box.", new AcceptableValueRange<float>(0.5f, 2f)));
-        ChatFontSizeMultiplier = Config.Bind("Chat", "FontSizeMultiplier", 1.0f,
-            new ConfigDescription("Size multiplier for the game's own chat text (the message you're typing, shown bottom-center). 1 = vanilla size.", new AcceptableValueRange<float>(0.5f, 3f)));
+        ChatLogFontSize = Config.Bind("Chat Log", "FontSize", 18,
+            new ConfigDescription("Font size of the chat history text (the whole box scales with it).", new AcceptableValueRange<int>(10, 40)));
 
         AimAssistEnabled = Config.Bind("Aim Assist", "Enabled", true,
             "Master toggle for aim assist (gently nudges your view toward items, and toward enemies when a weapon/staff is held).");

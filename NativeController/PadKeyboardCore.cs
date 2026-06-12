@@ -30,21 +30,19 @@ internal class PadKeyboardCore
     private readonly bool _hasSpace;
     private readonly string[] _specialKeys; // "!" + optional SPACE + optional hide key + confirmLabel
     private readonly string _hideLabel;     // null = no hide key on the grid
-    private readonly Func<ControllerDetect.Kind, string> _extraHint; // null = no extra hint
 
     private int _row, _col;                 // cursor
     private int _heldX, _heldY;             // current held nav direction
     private float _repeatTimer;
-    private GUIStyle _key, _keyHover, _hint;
+    private GUIStyle _key, _keyHover, _hintL, _hintC, _hintR;
     private float _styleScale = -1f;        // rebuild styles when the Scale config changes
-    private string _hints;                  // cached hint row text
+    private string _hintLeft, _hintCenter, _hintRight; // cached hint texts (user layout 2026-06-12)
     private ControllerDetect.Kind _hintsKind;
     private bool _hintsBuilt;
 
     internal float LastPanelTop { get; private set; } // screen-space y of the panel's top edge, set each Draw
 
-    internal PadKeyboardCore(bool hasSpace, string confirmLabel, string hideLabel = null,
-                             Func<ControllerDetect.Kind, string> extraHint = null)
+    internal PadKeyboardCore(bool hasSpace, string confirmLabel, string hideLabel = null)
     {
         _hasSpace = hasSpace;
         _hideLabel = hideLabel;
@@ -53,7 +51,6 @@ internal class PadKeyboardCore
         if (hideLabel != null) keys.Add(hideLabel); // navigable close key (playtest: the hint row alone wasn't discoverable)
         keys.Add(confirmLabel);
         _specialKeys = keys.ToArray();
-        _extraHint = extraHint;
     }
 
     private static string[][] BuildKeyLabels()
@@ -200,17 +197,16 @@ internal class PadKeyboardCore
         {
             _hintsBuilt = true;
             _hintsKind = kind;
-            string extra = _extraHint?.Invoke(kind);
-            // Start/Select still work (send/close) but get no hint line: the grid's own
-            // SEND/CLOSE keys already show those verbs (user feedback 2026-06-12 -- the
-            // extra words overflowed the row).
-            _hints =
-                ButtonNames.Of(ButtonNames.Control.South, kind) + " type    " +
-                ButtonNames.Of(ButtonNames.Control.East, kind) + " backspace    " +
-                (_hasSpace ? ButtonNames.Of(ButtonNames.Control.West, kind) + " space" : "") +
-                (string.IsNullOrEmpty(extra) ? "" : "    " + extra);
+            // Start/Select get no hint (the grid's own SEND/CLOSE keys already show those
+            // verbs); layout per user 2026-06-12: type left, space center, backspace right.
+            _hintLeft = ButtonNames.Of(ButtonNames.Control.South, kind) + " type";
+            _hintCenter = _hasSpace ? ButtonNames.Of(ButtonNames.Control.West, kind) + " space" : "";
+            _hintRight = ButtonNames.Of(ButtonNames.Control.East, kind) + " backspace";
         }
-        GUI.Label(new Rect(x0, yS + keyW + gap, panelW, hintH), _hints, _hint);
+        var hintRect = new Rect(x0 + pad, yS + keyW + gap, gridW, hintH);
+        GUI.Label(hintRect, _hintLeft, _hintL);
+        if (_hintCenter.Length != 0) GUI.Label(hintRect, _hintCenter, _hintC);
+        GUI.Label(hintRect, _hintRight, _hintR);
     }
 
     private void DrawKey(Rect rect, string label, bool hovered)
@@ -231,7 +227,9 @@ internal class PadKeyboardCore
         _key.normal.textColor = Color.white;
         _keyHover = new GUIStyle(_key) { fontStyle = FontStyle.Bold };
         _keyHover.normal.textColor = new Color(1f, 0.85f, 0.3f); // gold (matches EmoteWheel hover)
-        _hint = new GUIStyle(GUI.skin.label) { fontSize = (int)(12 * scale), alignment = TextAnchor.MiddleCenter };
-        _hint.normal.textColor = new Color(0.75f, 0.77f, 0.85f);
+        _hintL = new GUIStyle(GUI.skin.label) { fontSize = (int)(12 * scale), alignment = TextAnchor.MiddleLeft };
+        _hintL.normal.textColor = new Color(0.75f, 0.77f, 0.85f);
+        _hintC = new GUIStyle(_hintL) { alignment = TextAnchor.MiddleCenter };
+        _hintR = new GUIStyle(_hintL) { alignment = TextAnchor.MiddleRight };
     }
 }
