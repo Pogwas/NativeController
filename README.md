@@ -17,6 +17,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 - **On-screen chat keyboard** — open chat with Back/View and type with the pad. Goes through vanilla chat: live type-out, multiplayer sync, TTS; right-stick flick up/down recalls sent-message history (like vanilla's Up/Down arrows).
 - **Chat log** — a regular chat box of recent messages (names, newest at bottom), bottom-left; vanilla has none.
 - **Menu text fields on pad** — lobby name, save rename, server search and password screens auto-open the keyboard; vanilla rules apply; hides itself on mouse.
+- **Push-to-talk on pad** — bind any pad button (`[Gamepad] PushToTalkButton`) to hold-to-talk when the game's Push to Talk setting is on; the button keeps its normal function.
 - **Toggle sprint, grab & crouch** — one press holds the action, a second (or vanilla's own stop conditions) ends it.
 - **Button prompts** — GRAB / LET GO / ROTATE / CLIMB hints by the inventory, and the game's key tags show pad buttons (SHOTGUN [X] instead of [E]).
 - **Inventory D-pad arrows** — slots show ← ↑ → instead of 1 2 3 on pad.
@@ -60,7 +61,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 
 | Section | What it controls |
 |---|---|
-| `Gamepad` | Master toggle, right-stick look speed (X/Y), invert X/Y, stick deadzone, menu cursor speed, toggle sprint/grab/crouch, glyph style override (Auto / Xbox / PlayStation / Switch) |
+| `Gamepad` | Master toggle, right-stick look speed (X/Y), invert X/Y, stick deadzone, menu cursor speed, toggle sprint/grab/crouch, glyph style override (Auto / Xbox / PlayStation / Switch), `PushToTalkButton` (default `None`) — hold to talk when the game's Push to Talk setting is on |
 | `Aim Assist` | Toggle + item/enemy toggles, and the bounded-nudge tuning: Gain, MaxFraction (the no-lock cap), MaxDegPerFrame, IdleDrift, ActiveThreshold, MaxAngle (cone), ItemRange, EnemyRange, DeadZone |
 | `Emote Wheel` | Toggle, emote duration, face-preview camera framing |
 | `Prompts` | Crosshair button prompts, controller key tags, inventory D-pad arrows |
