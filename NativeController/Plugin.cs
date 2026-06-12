@@ -39,6 +39,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<ControllerDetect.Style> GlyphStyle;
     internal static ConfigEntry<bool> ChatKeyboardEnabled;
     internal static ConfigEntry<float> ChatKeyboardScale;
+    internal static ConfigEntry<bool> ChatHistoryRecallEnabled;
     internal static ConfigEntry<bool> MenuKeyboardEnabled;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
@@ -107,6 +108,8 @@ public class Plugin : BaseUnityPlugin
             "Show an on-screen keyboard when you open chat with the controller (Back/View). D-pad / left stick moves, A types, B deletes, X = space, Start sends, Back/View closes. Chat opened from the keyboard never shows it.");
         ChatKeyboardScale = Config.Bind("Chat Keyboard", "Scale", 1.0f,
             new ConfigDescription("Size of the on-screen keyboard panel.", new AcceptableValueRange<float>(0.5f, 2f)));
+        ChatHistoryRecallEnabled = Config.Bind("Chat Keyboard", "HistoryRecallEnabled", true,
+            "Flick the right stick up/down while the on-screen chat keyboard is open to recall recently sent messages (up = older, down = newer), like vanilla's Up/Down arrow keys.");
         MenuKeyboardEnabled = Config.Bind("Menu Keyboard", "Enabled", true,
             "Show an on-screen keyboard on the game's menu text fields (lobby name, save rename, server search, lobby password) while the controller is the active input. D-pad / left stick moves, A types, B deletes, X = space, Start confirms, Back/View hides it. Panel size follows [Chat Keyboard] Scale.");
 
