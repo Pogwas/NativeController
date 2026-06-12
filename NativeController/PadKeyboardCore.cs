@@ -28,8 +28,9 @@ internal class PadKeyboardCore
     internal Action OnClose;         // the optional HIDE grid key (front-ends with hasHide)
 
     private readonly bool _hasSpace;
-    private readonly string[] _specialKeys; // "!" + optional SPACE + optional HIDE + confirmLabel
+    private readonly string[] _specialKeys; // "!" + optional SPACE + optional hide key + confirmLabel
     private readonly string _confirmVerb, _closeVerb;
+    private readonly string _hideLabel;     // null = no hide key on the grid
 
     private int _row, _col;                 // cursor
     private int _heldX, _heldY;             // current held nav direction
@@ -40,12 +41,13 @@ internal class PadKeyboardCore
     private ControllerDetect.Kind _hintsKind;
     private bool _hintsBuilt;
 
-    internal PadKeyboardCore(bool hasSpace, string confirmLabel, string confirmVerb, string closeVerb, bool hasHide = false)
+    internal PadKeyboardCore(bool hasSpace, string confirmLabel, string confirmVerb, string closeVerb, string hideLabel = null)
     {
         _hasSpace = hasSpace;
+        _hideLabel = hideLabel;
         var keys = new System.Collections.Generic.List<string> { "!" };
         if (hasSpace) keys.Add("SPACE");
-        if (hasHide) keys.Add("HIDE"); // navigable close key (playtest: the hint row alone wasn't discoverable)
+        if (hideLabel != null) keys.Add(hideLabel); // navigable close key (playtest: the hint row alone wasn't discoverable)
         keys.Add(confirmLabel);
         _specialKeys = keys.ToArray();
         _confirmVerb = confirmVerb;
@@ -85,7 +87,7 @@ internal class PadKeyboardCore
             string k = _specialKeys[_col];
             if (k == "SPACE") OnChar?.Invoke(" ");
             else if (k == "!") OnChar?.Invoke("!");
-            else if (k == "HIDE") OnClose?.Invoke();
+            else if (_hideLabel != null && k == _hideLabel) OnClose?.Invoke();
             else OnConfirm?.Invoke();
         }
         else

@@ -57,6 +57,12 @@ internal class MenuNavigator : MonoBehaviour
     // hover WIDGET (server row / page arrow / save file) -- a second vanilla widget family
     // that is MenuElementHover-based and never appears in allMenuButtons.
     internal static RectTransform SelectedHoverRect;
+    // Read by SelectionBoxSnapPatch (bottom of this file): while unscaledTime is inside this
+    // window, the next selection-box target set SNAPS instead of lerping. Set on long pad
+    // jumps -- the box gliding/reshaping across the screen between panels reads as "the
+    // cursor freaking out" (playtest 2026-06-11). Short steps keep vanilla's glide.
+    internal static float SnapSelectionBoxUntil;
+    private const float SnapJumpDistance = 150f; // ~5 menu rows; anything longer is a panel hop
 
     // MenuElementSaveFile's identity fields are internal (click body needs them).
     private static readonly AccessTools.FieldRef<MenuElementSaveFile, string> SaveFileNameRef =
@@ -341,6 +347,7 @@ internal class MenuNavigator : MonoBehaviour
             {
                 _selected = loadBtn;
                 _selectedHover = null;
+                SnapSelectionBoxUntil = Time.unscaledTime + 0.1f; // cross-panel hop
                 if (MenuManager.instance != null) MenuManager.instance.MenuEffectHover();
                 return;
             }
@@ -378,6 +385,8 @@ internal class MenuNavigator : MonoBehaviour
         if (e.Btn == _selected && e.Hover == _selectedHover) return;
         _selected = e.Btn;
         _selectedHover = e.Hover;
+        if (Vector2.Distance(origin, e.Pos) > SnapJumpDistance)
+            SnapSelectionBoxUntil = Time.unscaledTime + 0.1f;
         if (e.Btn != null)
         {
             ScrollIntoView(e.Btn);
@@ -549,6 +558,8 @@ internal class MenuNavigator : MonoBehaviour
         _focusOverride = target;
         _focusPage = target;
         _selected = Reseed(btns);
+        _selectedHover = null;
+        SnapSelectionBoxUntil = Time.unscaledTime + 0.1f; // panel switch is always a long hop
         ScrollIntoView(_selected);
         if (MenuManager.instance != null) MenuManager.instance.MenuEffectHover();
         return true;
@@ -779,5 +790,51 @@ internal static class HoverElementForcePatch
         var sel = MenuNavigator.SelectedHoverRect;
         if (sel == null) return;
         __result = ReferenceEquals(rectTransform, sel);
+    }
+}
+
+// On long pad jumps (panel hops), snap the selection box straight onto its new target
+// instead of letting it lerp/reshape across the screen (MenuSelectionBox.Update lerps
+// position AND scale at 20f*dt -- charming between neighbouring rows, "the cursor freaking
+// out" across panels). Both widget families funnel through this method: MenuButton's
+// OnHovering (MenuButton.cs:277) and MenuElementHover's forced hover. The snap window is
+// armed by MenuNavigator on jumps > SnapJumpDistance and disarmed after one snap.
+[HarmonyPatch(typeof(SemiFunc), nameof(SemiFunc.MenuSelectionBoxTargetSet))]
+internal static class SelectionBoxSnapPatch
+{
+    private static readonly AccessTools.FieldRef<MenuPage, MenuSelectionBox> PageBoxRef =
+        AccessTools.FieldRefAccess<MenuPage, MenuSelectionBox>("selectionBox");
+    private static readonly AccessTools.FieldRef<MenuSelectableElement, bool> SelInScrollBoxRef =
+        AccessTools.FieldRefAccess<MenuSelectableElement, bool>("isInScrollBox");
+    private static readonly AccessTools.FieldRef<MenuSelectableElement, MenuScrollBox> SelScrollBoxRef =
+        AccessTools.FieldRefAccess<MenuSelectableElement, MenuScrollBox>("menuScrollBox");
+    private static readonly AccessTools.FieldRef<MenuSelectionBox, Vector3> TargetPosRef =
+        AccessTools.FieldRefAccess<MenuSelectionBox, Vector3>("targetPosition");
+    private static readonly AccessTools.FieldRef<MenuSelectionBox, Vector3> TargetScaleRef =
+        AccessTools.FieldRefAccess<MenuSelectionBox, Vector3>("targetScale");
+    private static readonly AccessTools.FieldRef<MenuSelectionBox, Vector3> CurrentScaleRef =
+        AccessTools.FieldRefAccess<MenuSelectionBox, Vector3>("currentScale");
+    private static readonly AccessTools.FieldRef<MenuSelectionBox, RectTransform> BoxRectRef =
+        AccessTools.FieldRefAccess<MenuSelectionBox, RectTransform>("rectTransform");
+
+    [HarmonyPostfix]
+    private static void Postfix(MenuPage parentPage, RectTransform rectTransform)
+    {
+        if (!MenuNavigator.ControllerActive) return;
+        if (Time.unscaledTime > MenuNavigator.SnapSelectionBoxUntil) return;
+        if (parentPage == null || rectTransform == null) return;
+
+        // Resolve the SAME box vanilla just targeted (scroll-box rows have their own box).
+        var box = PageBoxRef(parentPage);
+        var sel = rectTransform.GetComponent<MenuSelectableElement>();
+        if (sel != null && SelInScrollBoxRef(sel) && SelScrollBoxRef(sel) != null)
+            box = SelScrollBoxRef(sel).menuSelectionBox;
+        if (box == null) return;
+        var rt = BoxRectRef(box);
+        if (rt == null) return;
+
+        rt.localPosition = TargetPosRef(box);
+        CurrentScaleRef(box) = TargetScaleRef(box) / 100f;
+        MenuNavigator.SnapSelectionBoxUntil = 0f;
     }
 }

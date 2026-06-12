@@ -34,7 +34,8 @@ internal class ChatKeyboard : MonoBehaviour
     private const float PadOpenWindow = 0.25f; // Select-press recency that counts as "pad opened chat"
 
     private readonly PadKeyboardCore _core = new PadKeyboardCore(
-        hasSpace: true, confirmLabel: "SEND", confirmVerb: "send", closeVerb: "close");
+        hasSpace: true, confirmLabel: "SEND", confirmVerb: "send", closeVerb: "close",
+        hideLabel: "CLOSE"); // navigable close key (playtest 2026-06-11: Select-to-close alone wasn't discoverable)
 
     private bool _selectArmed;              // ignore the Select press that opened chat
     private float _lastSelectPress = -10f;  // pad-open detection (Update-order safe)
@@ -45,6 +46,7 @@ internal class ChatKeyboard : MonoBehaviour
     {
         _core.OnChar = TypeChar;
         _core.OnConfirm = SendOrClose;
+        _core.OnClose = Cancel; // CLOSE grid key = the pad's Esc, same as Select-release
     }
 
     // Called by Plugin.OnSceneLoaded.
