@@ -41,6 +41,10 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> ChatKeyboardScale;
     internal static ConfigEntry<bool> ChatHistoryRecallEnabled;
     internal static ConfigEntry<bool> MenuKeyboardEnabled;
+    internal static ConfigEntry<bool> ChatLogEnabled;
+    internal static ConfigEntry<float> ChatLogVisibleSeconds;
+    internal static ConfigEntry<int> ChatLogMaxVisible;
+    internal static ConfigEntry<float> ChatLogScale;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
     internal static ConfigEntry<bool> AimAssistItems;
@@ -63,6 +67,7 @@ public class Plugin : BaseUnityPlugin
     private static GameObject _grabPromptsGO;
     private static GameObject _chatKeyboardGO;
     private static GameObject _menuKeyboardGO;
+    private static GameObject _chatLogGO;
 
     private void Awake()
     {
@@ -112,6 +117,14 @@ public class Plugin : BaseUnityPlugin
             "Flick the right stick up/down while the on-screen chat keyboard is open to recall recently sent messages (up = older, down = newer), like vanilla's Up/Down arrow keys.");
         MenuKeyboardEnabled = Config.Bind("Menu Keyboard", "Enabled", true,
             "Show an on-screen keyboard on the game's menu text fields (lobby name, save rename, server search, lobby password) while the controller is the active input. D-pad / left stick moves, A types, B deletes, X = space, Start confirms, Back/View hides it. Panel size follows [Chat Keyboard] Scale.");
+        ChatLogEnabled = Config.Bind("Chat Log", "Enabled", true,
+            "Show a chat box of recent messages (everyone's, with names, newest at the bottom) in the bottom-left corner, like a regular multiplayer chat. Vanilla has no chat log at all.");
+        ChatLogVisibleSeconds = Config.Bind("Chat Log", "VisibleSeconds", 6f,
+            new ConfigDescription("How long the chat box stays on screen after a message arrives (fades out at the end). 0 = only visible while chat is open.", new AcceptableValueRange<float>(0f, 30f)));
+        ChatLogMaxVisible = Config.Bind("Chat Log", "MaxVisible", 8,
+            new ConfigDescription("Maximum chat lines shown.", new AcceptableValueRange<int>(1, 15)));
+        ChatLogScale = Config.Bind("Chat Log", "Scale", 1.0f,
+            new ConfigDescription("Size of the chat box.", new AcceptableValueRange<float>(0.5f, 2f)));
 
         AimAssistEnabled = Config.Bind("Aim Assist", "Enabled", true,
             "Master toggle for aim assist (gently nudges your view toward items, and toward enemies when a weapon/staff is held).");
@@ -199,6 +212,12 @@ public class Plugin : BaseUnityPlugin
             _menuKeyboardGO = new GameObject("NativeController.MenuKeyboard", typeof(MenuKeyboard));
             DontDestroyOnLoad(_menuKeyboardGO);
             Log.LogDebug("[Gamepad] MenuKeyboard (re)created.");
+        }
+        if (_chatLogGO == null)
+        {
+            _chatLogGO = new GameObject("NativeController.ChatLog", typeof(ChatLog));
+            DontDestroyOnLoad(_chatLogGO);
+            Log.LogDebug("[Gamepad] ChatLog (re)created.");
         }
         EmoteWheel.ResetState(); // every scene load: forget toggled faces, refresh labels
         ChatKeyboard.ResetState(); // every scene load: never carry a stale-open panel across levels
