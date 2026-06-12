@@ -327,9 +327,10 @@ internal class MenuNavigator : MonoBehaviour
             ? new Vector2(Mathf.Sign(nav.x), 0f)
             : new Vector2(0f, Mathf.Sign(nav.y));
 
-        Vector2 origin = _selectedHover != null
-            ? RectPos(_selectedHover.transform as RectTransform)
-            : (_selected != null ? ScreenPos(_selected) : Vector2.zero);
+        Transform fromT = _selectedHover != null ? _selectedHover.transform
+                                                 : (_selected != null ? _selected.transform : null);
+        if (fromT == null) return;
+        FillRect(fromT, out Vector2 origin, out Vector2 originMin, out Vector2 originMax);
 
         // Inside a scroll list, stay within the list until its rows are exhausted, so a deep (scrolled-off)
         // row isn't skipped in favour of a fixed button outside the box (e.g. "Back") that's spatially closer.
@@ -341,12 +342,12 @@ internal class MenuNavigator : MonoBehaviour
         {
             var sameBox = candidates.Where(b => b.GetComponentInParent<MenuScrollBox>() == box).ToList();
             entries = BuildEntries(sameBox, null);
-            next = NearestInDirection(entries, origin, dir);
+            next = NearestInDirection(entries, origin, originMin, originMax, dir);
         }
         if (next < 0)
         {
             entries = BuildEntries(candidates, hovers);
-            next = NearestInDirection(entries, origin, dir);
+            next = NearestInDirection(entries, origin, originMin, originMax, dir);
         }
 
         // No in-page target on a horizontal press -> try crossing to the other panel/page.
@@ -368,20 +369,46 @@ internal class MenuNavigator : MonoBehaviour
     }
 
     // A navigable widget: a vanilla MenuButton OR a MenuElementHover-based hover widget.
+    // Min/Max are the world-rect extents — the beam test needs them because wide widgets
+    // (the Saved Games row spans half the screen) have centers far from their visual edges.
     private struct NavEntry
     {
         public MenuButton Btn;
         public MenuElementHover Hover;
         public Vector2 Pos;
+        public Vector2 Min, Max;
+    }
+
+    private static NavEntry MakeEntry(MenuButton b, MenuElementHover h, Transform t)
+    {
+        var e = new NavEntry { Btn = b, Hover = h };
+        FillRect(t, out e.Pos, out e.Min, out e.Max);
+        return e;
     }
 
     private static List<NavEntry> BuildEntries(List<MenuButton> buttons, List<MenuElementHover> hovers)
     {
         var list = new List<NavEntry>(buttons.Count + (hovers != null ? hovers.Count : 0));
-        foreach (var b in buttons) list.Add(new NavEntry { Btn = b, Pos = ScreenPos(b) });
+        foreach (var b in buttons) list.Add(MakeEntry(b, null, b.transform));
         if (hovers != null)
-            foreach (var h in hovers) list.Add(new NavEntry { Hover = h, Pos = RectPos(h.transform as RectTransform) });
+            foreach (var h in hovers) list.Add(MakeEntry(null, h, h.transform));
         return list;
+    }
+
+    private static void FillRect(Transform t, out Vector2 pos, out Vector2 min, out Vector2 max)
+    {
+        var rt = t as RectTransform;
+        if (rt == null)
+        {
+            var p = t.position;
+            pos = new Vector2(p.x, p.y);
+            min = pos; max = pos;
+            return;
+        }
+        rt.GetWorldCorners(s_corners);
+        min = new Vector2(Mathf.Min(s_corners[0].x, s_corners[2].x), Mathf.Min(s_corners[0].y, s_corners[2].y));
+        max = new Vector2(Mathf.Max(s_corners[0].x, s_corners[2].x), Mathf.Max(s_corners[0].y, s_corners[2].y));
+        pos = (min + max) * 0.5f;
     }
 
     // Hover widgets on the focused page that the navigator can drive: server rows
@@ -530,7 +557,7 @@ internal class MenuNavigator : MonoBehaviour
     // Operates on NavEntry positions (buttons + hover widgets); returns the index, -1 = none.
     // The currently-selected widget sits at the origin (delta 0) and self-excludes via the
     // minimum-step thresholds.
-    private static int NearestInDirection(List<NavEntry> entries, Vector2 origin, Vector2 dir)
+    private static int NearestInDirection(List<NavEntry> entries, Vector2 origin, Vector2 originMin, Vector2 originMax, Vector2 dir)
     {
         // Pass 0 (horizontal only): SAME-ROW first. A slider's < and > sit far apart on one
         // line; without this, a slightly-right control in a DIFFERENT row sets the pass-1
@@ -550,21 +577,44 @@ internal class MenuNavigator : MonoBehaviour
             if (sameRow >= 0) return sameRow;
         }
 
-        // Pass 1+2 run TWICE: first restricted to a ±45° CONE around the press direction
-        // (along >= |perp|), then unrestricted as a fallback. The cone is what keeps panel
-        // layouts sane (playtest bug 2026-06-11, Saved Games page): UP from LOAD SAVE found
-        // the save file at a steep diagonal as the "nearest step" and the band then excluded
-        // CLICK TO RENAME straight above; with the cone, vertical presses stay inside a panel
-        // and horizontal presses cross panels — the console convention. The unrestricted
-        // fallback preserves every legit diagonal transition (e.g. a slider arrow down to the
-        // next row's toggle) when the cone has no target at all.
+        // Pass 1+2 run up to THREE times, each a widening filter (standard focus-search
+        // layering, cf. Android FocusFinder's beamBeats):
+        //   BEAM — target rect overlaps the origin RECT's span on the perpendicular axis.
+        //     Wide widgets need this (playtest 2026-06-11, Saved Games): the save row's
+        //     CENTER sits far right of NEW GAME, so point math put NEW GAME outside the
+        //     cone and UP from the save skipped to GO BACK — yet their rects overlap
+        //     almost completely. Beam targets are each other's natural up/down partners.
+        //   CONE — within ±45° of the press direction (along >= |perp|). Keeps vertical
+        //     presses inside a panel and lets horizontal presses cross panels: UP from
+        //     LOAD SAVE must reach CLICK TO RENAME, never the save row across the screen.
+        //   ANY  — unrestricted fallback so a lone heavily-diagonal target (e.g. a slider
+        //     arrow down to the next row's toggle) stays reachable.
         // On VERTICAL presses, same-row wobble must not count as a step: the lobby menu's
-        // columns sit a few units staggered (MODS is lower than CUSTOMIZE), so a 0.5 threshold
-        // made the side-neighbour the "nearest row". 12f = Pass 0's same-row band.
+        // columns sit a few units staggered (MODS is lower than CUSTOMIZE), so a 0.5
+        // threshold made the side-neighbour the "nearest row". 12f = Pass 0's same-row band.
         float minStep = dir.y != 0f ? 12f : 0.5f;
-        int idx = BandPick(entries, origin, dir, minStep, coneOnly: true);
-        if (idx < 0) idx = BandPick(entries, origin, dir, minStep, coneOnly: false);
+        int idx = BandPick(entries, origin, originMin, originMax, dir, minStep, PickMode.Beam);
+        if (idx < 0) idx = BandPick(entries, origin, originMin, originMax, dir, minStep, PickMode.Cone);
+        if (idx < 0) idx = BandPick(entries, origin, originMin, originMax, dir, minStep, PickMode.Any);
         return idx;
+    }
+
+    private enum PickMode { Beam, Cone, Any }
+
+    private static bool ModeAllows(PickMode mode, NavEntry e, Vector2 originMin, Vector2 originMax,
+                                   Vector2 dir, float along, float perp)
+    {
+        switch (mode)
+        {
+            case PickMode.Beam:
+                return dir.y != 0f
+                    ? e.Max.x >= originMin.x && e.Min.x <= originMax.x
+                    : e.Max.y >= originMin.y && e.Min.y <= originMax.y;
+            case PickMode.Cone:
+                return perp <= along;
+            default:
+                return true;
+        }
     }
 
     // Nearest-step band pick: smallest forward distance sets the row, then min lateral offset
@@ -573,7 +623,8 @@ internal class MenuNavigator : MonoBehaviour
     // gap was extra large — REPOConfig injects its pause-menu 'Mods' button 58 units below
     // 'Main Menu' (normal rows: ~32), so 'Quit Game' (88) fell inside the 93-unit band and won
     // on lateral alignment. NavDiag-verified 2026-06-09 against every working transition.
-    private static int BandPick(List<NavEntry> entries, Vector2 origin, Vector2 dir, float minStep, bool coneOnly)
+    private static int BandPick(List<NavEntry> entries, Vector2 origin, Vector2 originMin, Vector2 originMax,
+                                Vector2 dir, float minStep, PickMode mode)
     {
         float minAlong = float.MaxValue;
         for (int i = 0; i < entries.Count; i++)
@@ -581,7 +632,8 @@ internal class MenuNavigator : MonoBehaviour
             Vector2 delta = entries[i].Pos - origin;
             float along = delta.x * dir.x + delta.y * dir.y;
             if (along <= minStep) continue;
-            if (coneOnly && Mathf.Abs(delta.x * dir.y - delta.y * dir.x) > along) continue;
+            float perp = Mathf.Abs(delta.x * dir.y - delta.y * dir.x);
+            if (!ModeAllows(mode, entries[i], originMin, originMax, dir, along, perp)) continue;
             if (along < minAlong) minAlong = along;
         }
         if (minAlong == float.MaxValue) return -1;
@@ -595,7 +647,7 @@ internal class MenuNavigator : MonoBehaviour
             float along = delta.x * dir.x + delta.y * dir.y;
             if (along <= minStep || along > band) continue;
             float perp = Mathf.Abs(delta.x * dir.y - delta.y * dir.x);
-            if (coneOnly && perp > along) continue;
+            if (!ModeAllows(mode, entries[i], originMin, originMax, dir, along, perp)) continue;
             float score = perp * 10000f + along; // lateral offset dominates; along breaks ties
             if (score < bestScore) { bestScore = score; best = i; }
         }
