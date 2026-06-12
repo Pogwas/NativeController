@@ -64,9 +64,10 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 | `Aim Assist` | Toggle + item/enemy toggles, and the bounded-nudge tuning: Gain, MaxFraction (the no-lock cap), MaxDegPerFrame, IdleDrift, ActiveThreshold, MaxAngle (cone), ItemRange, EnemyRange, DeadZone |
 | `Emote Wheel` | Toggle, emote duration, face-preview camera framing |
 | `Prompts` | Crosshair button prompts, controller key tags, inventory D-pad arrows |
-| `Chat Keyboard` | On-screen chat keyboard: toggle + panel size, plus `HistoryRecallEnabled` (default `true`) — right-stick flick up/down while the chat keyboard is open recalls recently sent messages (up = older, down = newer) |
-| `Menu Keyboard` | On-screen keyboard for menu text fields: toggle (size follows Chat Keyboard Scale) |
-| `Chat Log` | Bottom-left chat box of recent messages: `Enabled`, `VisibleSeconds` (default `6` — how long it stays after a message; `0` = only while chat is open), `MaxVisible` (default `8` lines), `FontSize` (default `18` — the whole box scales with it) |
+| `Chat` | `Scale` (default `1`) — one size knob for all the chat UI: both on-screen keyboards and the chat history box |
+| `Chat Keyboard` | On-screen chat keyboard: toggle, plus `HistoryRecallEnabled` (default `true`) — right-stick flick up/down while the chat keyboard is open recalls recently sent messages (up = older, down = newer) |
+| `Menu Keyboard` | On-screen keyboard for menu text fields: toggle (size follows `[Chat] Scale`) |
+| `Chat Log` | Bottom-left chat box of recent messages: `Enabled`, `VisibleSeconds` (default `6` — how long it stays after a message; `0` = only while chat is open), `MaxVisible` (default `8` lines); size follows `[Chat] Scale` |
 
 ## Bug reports
 

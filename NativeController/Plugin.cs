@@ -38,13 +38,12 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> CrouchToggle;
     internal static ConfigEntry<ControllerDetect.Style> GlyphStyle;
     internal static ConfigEntry<bool> ChatKeyboardEnabled;
-    internal static ConfigEntry<float> ChatKeyboardScale;
+    internal static ConfigEntry<float> ChatScale;
     internal static ConfigEntry<bool> ChatHistoryRecallEnabled;
     internal static ConfigEntry<bool> MenuKeyboardEnabled;
     internal static ConfigEntry<bool> ChatLogEnabled;
     internal static ConfigEntry<float> ChatLogVisibleSeconds;
     internal static ConfigEntry<int> ChatLogMaxVisible;
-    internal static ConfigEntry<int> ChatLogFontSize;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
     internal static ConfigEntry<bool> AimAssistItems;
@@ -111,20 +110,20 @@ public class Plugin : BaseUnityPlugin
             "Which controller's button names/glyphs to show. Auto = detect from the connected pad.");
         ChatKeyboardEnabled = Config.Bind("Chat Keyboard", "Enabled", true,
             "Show an on-screen keyboard when you open chat with the controller (Back/View). D-pad / left stick moves, A types, B deletes, X = space, Start sends, Back/View closes. Chat opened from the keyboard never shows it.");
-        ChatKeyboardScale = Config.Bind("Chat Keyboard", "Scale", 1.0f,
-            new ConfigDescription("Size of the on-screen keyboard panel.", new AcceptableValueRange<float>(0.5f, 2f)));
+        // ONE size knob for every chat-UI surface (user 2026-06-12: separate keyboard-Scale +
+        // log-FontSize sliders got mixed up -- "just combine them so it doesnt get confusing").
+        ChatScale = Config.Bind("Chat", "Scale", 1.0f,
+            new ConfigDescription("One size knob for all of this mod's chat UI: the on-screen chat/menu keyboards and the chat history box.", new AcceptableValueRange<float>(0.5f, 2f)));
         ChatHistoryRecallEnabled = Config.Bind("Chat Keyboard", "HistoryRecallEnabled", true,
             "Flick the right stick up/down while the on-screen chat keyboard is open to recall recently sent messages (up = older, down = newer), like vanilla's Up/Down arrow keys.");
         MenuKeyboardEnabled = Config.Bind("Menu Keyboard", "Enabled", true,
-            "Show an on-screen keyboard on the game's menu text fields (lobby name, save rename, server search, lobby password) while the controller is the active input. D-pad / left stick moves, A types, B deletes, X = space, Start confirms, Back/View hides it. Panel size follows [Chat Keyboard] Scale.");
+            "Show an on-screen keyboard on the game's menu text fields (lobby name, save rename, server search, lobby password) while the controller is the active input. D-pad / left stick moves, A types, B deletes, X = space, Start confirms, Back/View hides it. Panel size follows [Chat] Scale.");
         ChatLogEnabled = Config.Bind("Chat Log", "Enabled", true,
             "Show a chat box of recent messages (everyone's, with names, newest at the bottom) in the bottom-left corner, like a regular multiplayer chat. Vanilla has no chat log at all.");
         ChatLogVisibleSeconds = Config.Bind("Chat Log", "VisibleSeconds", 6f,
             new ConfigDescription("How long the chat box stays on screen after a message arrives (fades out at the end). 0 = only visible while chat is open.", new AcceptableValueRange<float>(0f, 30f)));
         ChatLogMaxVisible = Config.Bind("Chat Log", "MaxVisible", 8,
             new ConfigDescription("Maximum chat lines shown.", new AcceptableValueRange<int>(1, 15)));
-        ChatLogFontSize = Config.Bind("Chat Log", "FontSize", 18,
-            new ConfigDescription("Font size of the chat history text (the whole box scales with it).", new AcceptableValueRange<int>(10, 40)));
 
         AimAssistEnabled = Config.Bind("Aim Assist", "Enabled", true,
             "Master toggle for aim assist (gently nudges your view toward items, and toward enemies when a weapon/staff is held).");

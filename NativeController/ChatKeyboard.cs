@@ -236,7 +236,7 @@ internal class ChatKeyboard : MonoBehaviour
     private void OnGUI()
     {
         if (!Open) return;
-        float s = Plugin.ChatKeyboardScale.Value;
+        float s = Plugin.ChatScale.Value;
         // Clear the bottom band where vanilla draws the message being typed (ChatUI sits on
         // the world-space HUD canvas, so its exact screen rect isn't computable -- 13% of
         // screen height clears it; user feedback 2026-06-12: panel used to cover the text).

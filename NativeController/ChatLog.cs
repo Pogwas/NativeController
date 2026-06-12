@@ -53,9 +53,10 @@ internal class ChatLog : MonoBehaviour
         float alpha = VisibleAlpha();
         if (alpha <= 0f) return;
 
-        // The whole layout was designed around a base font of 14, so the FontSize config
-        // drives everything as a scale factor ("chat history is really small" -- user 2026-06-12).
-        float s = Plugin.ChatLogFontSize.Value / 14f;
+        // One shared size knob for all chat UI ([Chat] Scale). The log's layout constants were
+        // designed around font 14; the author's in-game-tuned size next to vanilla chat text is
+        // font 30 (2026-06-12 playtest), hence the 30/14 factor: Scale 1 = font 30, keyboard 1x.
+        float s = Plugin.ChatScale.Value * (30f / 14f);
         EnsureStyles(s);
 
         int n = Mathf.Min(Plugin.ChatLogMaxVisible.Value, Entries.Count);
