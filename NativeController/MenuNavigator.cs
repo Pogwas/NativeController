@@ -96,6 +96,16 @@ internal class MenuNavigator : MonoBehaviour
 
         if (_active)
         {
+            // The on-screen menu keyboard owns d-pad/stick/A/B while open (MenuKeyboard.cs).
+            // Keep the highlight + hover forcing where they were so the page doesn't reset
+            // (MenuScrollBoxScrollPatch follows Selected, so scroll stays frozen too).
+            if (MenuKeyboard.Open)
+            {
+                Selected = _selected;
+                ControllerActive = true;
+                return;
+            }
+
             if (_selected == null || !candidates.Contains(_selected)) _selected = Reseed(candidates);
             HandleNavigation(gp, candidates);
 

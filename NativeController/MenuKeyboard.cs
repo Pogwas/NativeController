@@ -172,6 +172,7 @@ internal class MenuKeyboard : MonoBehaviour
             return;
         }
         if (_textInput == null) return;
+        // Vanilla never shows more than one text-input page at a time, so first-match-wins is safe.
         var create = FindPage<MenuPageServerListCreateNew>();
         if (create != null) { create.ButtonConfirm(); return; }
         var rename = FindPage<MenuPageSavesRename>();
@@ -185,6 +186,7 @@ internal class MenuKeyboard : MonoBehaviour
     // fallback in case the hierarchy says otherwise.
     private T FindPage<T>() where T : MonoBehaviour
     {
+        if (_textInput == null) return null;
         var onParent = _textInput.GetComponentInParent<T>();
         if (onParent != null) return onParent;
         foreach (var c in FindObjectsOfType<T>())

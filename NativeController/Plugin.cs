@@ -39,6 +39,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<ControllerDetect.Style> GlyphStyle;
     internal static ConfigEntry<bool> ChatKeyboardEnabled;
     internal static ConfigEntry<float> ChatKeyboardScale;
+    internal static ConfigEntry<bool> MenuKeyboardEnabled;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
     internal static ConfigEntry<bool> AimAssistItems;
@@ -60,6 +61,7 @@ public class Plugin : BaseUnityPlugin
     private static GameObject _emoteWheelGO;
     private static GameObject _grabPromptsGO;
     private static GameObject _chatKeyboardGO;
+    private static GameObject _menuKeyboardGO;
 
     private void Awake()
     {
@@ -105,6 +107,8 @@ public class Plugin : BaseUnityPlugin
             "Show an on-screen keyboard when you open chat with the controller (Back/View). D-pad / left stick moves, A types, B deletes, X = space, Start sends, Back/View closes. Chat opened from the keyboard never shows it.");
         ChatKeyboardScale = Config.Bind("Chat Keyboard", "Scale", 1.0f,
             new ConfigDescription("Size of the on-screen keyboard panel.", new AcceptableValueRange<float>(0.5f, 2f)));
+        MenuKeyboardEnabled = Config.Bind("Menu Keyboard", "Enabled", true,
+            "Show an on-screen keyboard on the game's menu text fields (lobby name, save rename, server search, lobby password) while the controller is the active input. D-pad / left stick moves, A types, B deletes, X = space, Start confirms, Back/View hides it. Panel size follows [Chat Keyboard] Scale.");
 
         AimAssistEnabled = Config.Bind("Aim Assist", "Enabled", true,
             "Master toggle for aim assist (gently nudges your view toward items, and toward enemies when a weapon/staff is held).");
@@ -187,8 +191,15 @@ public class Plugin : BaseUnityPlugin
             DontDestroyOnLoad(_chatKeyboardGO);
             Log.LogDebug("[Gamepad] ChatKeyboard (re)created.");
         }
+        if (_menuKeyboardGO == null)
+        {
+            _menuKeyboardGO = new GameObject("NativeController.MenuKeyboard", typeof(MenuKeyboard));
+            DontDestroyOnLoad(_menuKeyboardGO);
+            Log.LogDebug("[Gamepad] MenuKeyboard (re)created.");
+        }
         EmoteWheel.ResetState(); // every scene load: forget toggled faces, refresh labels
         ChatKeyboard.ResetState(); // every scene load: never carry a stale-open panel across levels
+        MenuKeyboard.ResetState(); // every scene load: never carry a stale-open panel across scenes
         ControllerDetect.ResetLevelTouch(); // inventory arrows wait for the first pad touch per level
     }
 }
