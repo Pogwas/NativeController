@@ -88,30 +88,30 @@ Please open an [Issue](https://github.com/Pogwas/NativeController/issues) and in
 
 ### 0.4.0
 
-- **On-screen chat keyboard** — pad players can finally chat/TTS: opening chat with Back/View shows a navigable QWERTY panel (D-pad / left stick moves, A types, B deletes, X space, Start sends, Back/View closes). Typing goes through vanilla chat, so live type-out, multiplayer sync, and the TTS voice all behave exactly like keyboard chat. Config: `[Chat Keyboard] Enabled` / `Scale`.
-- **Inventory D-pad arrows** — the three slots' number labels become ← ↑ → while the pad is the active input (appears after your first pad touch each level). Config: `[Prompts] InventoryArrows`.
-- **Menu hint gating** — the "D-Pad Move / Select / Back" menu hint now only shows while the controller is the active input.
-- **Invert-X** — new config for right-stick horizontal look, mirroring InvertY. Config: `[Gamepad] InvertX`.
-- **Toggle crouch** — press Crouch (R3) once to stay crouched, again to stand; configurable like the other toggles. Config: `[Gamepad] ToggleCrouch`.
-- **Button-name style override** — force Xbox / PlayStation / Switch button names everywhere instead of auto-detecting from the pad. Config: `[Gamepad] GlyphStyle`.
-- **Menu navigation fixes** — horizontal D-pad presses now prefer targets on the same row, and page detection falls back to the UI hierarchy (fixes the MODS button getting skipped and occasional cross-page jumps).
+- **On-screen chat keyboard** — open chat with Back/View for a navigable QWERTY panel: A types, B deletes, X space, Start sends. Goes through vanilla chat, so live type-out, multiplayer sync and TTS are intact. Config: `[Chat Keyboard] Enabled` / `Scale`.
+- **Inventory D-pad arrows** — slot labels become ← ↑ → while the pad is active. Config: `[Prompts] InventoryArrows`.
+- **Menu hint gating** — the move/select/back hint only shows on controller.
+- **Invert-X** — right-stick horizontal look invert. Config: `[Gamepad] InvertX`.
+- **Toggle crouch** — press Crouch (R3) to stay crouched, again to stand. Config: `[Gamepad] ToggleCrouch`.
+- **Button-name style override** — force Xbox / PlayStation / Switch names. Config: `[Gamepad] GlyphStyle`.
+- **Menu navigation fixes** — horizontal presses prefer same-row targets; page detection falls back to the UI hierarchy (MODS button no longer skipped).
 
 ### 0.3.0
 
-- **Button prompts** — vanilla-tooltip-style hints flank the inventory bar: GRAB / LET GO / CLIMB on its right, ROTATE on its left, shown exactly when the game's own crosshair says the action is available. Only while the controller is the active input. Config: `[Prompts] Enabled`.
-- **Controller buttons in the game's own key hints** — item tooltips and other key tags show your pad's buttons (SHOTGUN [X] instead of [E]) while the pad is the active input; switches back live when you touch the mouse. Config: `[Prompts] ControllerKeyTags`.
-- Toggle-sprint now ends **instantly** when you stop moving, matching vanilla (the `SprintStopGraceSeconds` config is removed).
-- Key hints show button **symbols** (✕ ○ □ △, ← ↑ → ↓) instead of text names.
+- **Button prompts** — GRAB / LET GO / CLIMB / ROTATE hints by the inventory bar, exactly when the game's crosshair allows the action. Config: `[Prompts] Enabled`.
+- **Controller buttons in the game's key hints** — SHOTGUN [X] instead of [E] while the pad is active; switches back live on mouse. Config: `[Prompts] ControllerKeyTags`.
+- Toggle-sprint ends instantly when you stop moving, matching vanilla (`SprintStopGraceSeconds` removed).
+- Key hints show button symbols (✕ ○ □ △, ← ↑ → ↓) instead of text names.
 
 ### 0.2.0
 
-- **Emote wheel** — hold D-pad Down in-game for a radial wheel of the game's 6 expressions; right stick picks, release plays it. Emotes auto-clear after a few seconds (configurable), and the face preview is reframed so you can actually see your face. The Controller Layout overlay moved to the Settings menu (its old hold-D-pad-Down trigger now opens the wheel).
-- **Toggle sprint** — press Sprint (L3) once to keep sprinting; stops when stamina empties, you stop moving, or you press it again. Configurable.
-- **Toggle grab** — press Grab (RT) once to keep holding a grabbed object; press again to let go. Auto-releases if the grab breaks. Configurable.
+- **Emote wheel** — hold D-pad Down for the game's 6 expressions; right stick picks, release plays. Auto-clears after a configurable delay. Controller Layout overlay moved to the Settings menu.
+- **Toggle sprint** — press Sprint (L3) once to keep sprinting; stops on empty stamina, standing still, or a second press. Configurable.
+- **Toggle grab** — press Grab (RT) once to keep holding; again to let go. Configurable.
 
 ### 0.1.0
 
-- Initial release. Native gamepad binding, right-stick look, full button mapping, menu navigation (vanilla + REPOConfig), Controller Layout overlay, kind-aware glyphs (Xbox / PlayStation / Switch), holdable push/pull on the bumpers, configurable aim assist, and splash-screen skip.
+- Initial release: native gamepad bindings, right-stick look, full button mapping, menu navigation (vanilla + REPOConfig), Controller Layout overlay, Xbox / PlayStation / Switch glyphs, bumper push/pull, configurable aim assist, splash-screen skip.
 
 ## License
 
