@@ -53,8 +53,21 @@ internal class MenuNavigator : MonoBehaviour
     // Read by MenuButtonHoverPatch.
     internal static MenuButton Selected;
     internal static bool ControllerActive;
+    // Read by HoverElementForcePatch (bottom of this file): the rect of the selected
+    // hover WIDGET (server row / page arrow / save file) -- a second vanilla widget family
+    // that is MenuElementHover-based and never appears in allMenuButtons.
+    internal static RectTransform SelectedHoverRect;
+
+    // MenuElementSaveFile's identity fields are internal (click body needs them).
+    private static readonly AccessTools.FieldRef<MenuElementSaveFile, string> SaveFileNameRef =
+        AccessTools.FieldRefAccess<MenuElementSaveFile, string>("saveFileName");
+    private static readonly AccessTools.FieldRef<MenuElementSaveFile, List<string>> SaveFileBackupsRef =
+        AccessTools.FieldRefAccess<MenuElementSaveFile, List<string>>("saveFileBackups");
+    private static readonly AccessTools.FieldRef<SpringFloat, float> SpringVelocityRef =
+        AccessTools.FieldRefAccess<SpringFloat, float>("springVelocity"); // arrow click-pop spring is internal
 
     private MenuButton _selected;
+    private MenuElementHover _selectedHover; // hover-widget selection; when non-null it owns the highlight and Selected publishes null
     private bool _active;
     private float _navCooldown;
     private GUIStyle _style;
@@ -79,16 +92,18 @@ internal class MenuNavigator : MonoBehaviour
     {
         ControllerActive = false;
         Selected = null;
+        SelectedHoverRect = null;
 
         if (!Plugin.Enabled.Value) return;
         var gp = Gamepad.current;
         if (gp == null) return;
-        if (!MenuOpen(out var mm)) { _selected = null; _focusOverride = null; _focusPage = null; _lastTop = null; _lastByPage.Clear(); return; }
+        if (!MenuOpen(out var mm)) { _selected = null; _selectedHover = null; _focusOverride = null; _focusPage = null; _lastTop = null; _lastByPage.Clear(); return; }
 
         ResolveFocus(mm);
 
         var candidates = Candidates(mm, _focusPage);
-        if (candidates.Count == 0) { _selected = null; return; }
+        var hovers = HoverCandidates(_focusPage);
+        if (candidates.Count == 0 && hovers.Count == 0) { _selected = null; _selectedHover = null; return; }
 
         // Last-input-wins: controller input claims control; mouse movement hands it back to the mouse.
         if (AnyControllerInput(gp)) _active = true;
@@ -106,21 +121,37 @@ internal class MenuNavigator : MonoBehaviour
                 return;
             }
 
-            if (_selected == null || !candidates.Contains(_selected)) _selected = Reseed(candidates);
-            HandleNavigation(gp, candidates);
+            bool buttonValid = _selectedHover == null && _selected != null && candidates.Contains(_selected);
+            bool hoverValid = _selectedHover != null && hovers.Contains(_selectedHover);
+            if (!buttonValid && !hoverValid)
+            {
+                _selected = null;
+                _selectedHover = null;
+                if (_focusPage != null && _lastByPage.TryGetValue(_focusPage, out var remembered)
+                    && remembered != null && candidates.Contains(remembered))
+                    _selected = remembered;
+                else
+                    PickTopmost(candidates, hovers, out _selected, out _selectedHover);
+            }
+            HandleNavigation(gp, candidates, hovers);
 
-            if (gp.buttonSouth.wasPressedThisFrame) Select(_selected);
+            if (gp.buttonSouth.wasPressedThisFrame)
+            {
+                if (_selectedHover != null) ActivateHover(_selectedHover);
+                else Select(_selected);
+            }
             if (gp.buttonEast.wasPressedThisFrame) Back(candidates);
 
-            if (_focusPage != null && _selected != null) _lastByPage[_focusPage] = _selected;
-            Selected = _selected;
+            if (_focusPage != null && _selected != null && _selectedHover == null) _lastByPage[_focusPage] = _selected;
+            Selected = _selectedHover == null ? _selected : null;
+            SelectedHoverRect = _selectedHover != null ? _selectedHover.transform as RectTransform : null;
             ControllerActive = true;
         }
         else
         {
             // Mouse mode: keep _selected synced to the moused-over button for a smooth handover back.
             var hovered = candidates.FirstOrDefault(b => HoveringRef(b));
-            if (hovered != null) _selected = hovered;
+            if (hovered != null) { _selected = hovered; _selectedHover = null; }
         }
     }
 
@@ -254,9 +285,17 @@ internal class MenuNavigator : MonoBehaviour
     private static Vector2 ScreenPos(MenuButton b)
     {
         var rt = b.transform as RectTransform;
-        if (rt != null) { rt.GetWorldCorners(s_corners); var c = (s_corners[0] + s_corners[2]) * 0.5f; return new Vector2(c.x, c.y); }
+        if (rt != null) return RectPos(rt);
         var p = b.transform.position;
         return new Vector2(p.x, p.y);
+    }
+
+    private static Vector2 RectPos(RectTransform rt)
+    {
+        if (rt == null) return Vector2.zero;
+        rt.GetWorldCorners(s_corners);
+        var c = (s_corners[0] + s_corners[2]) * 0.5f;
+        return new Vector2(c.x, c.y);
     }
 
     private static MenuButton Topmost(List<MenuButton> c) =>
@@ -271,7 +310,7 @@ internal class MenuNavigator : MonoBehaviour
         return Topmost(candidates);
     }
 
-    private void HandleNavigation(Gamepad gp, List<MenuButton> candidates)
+    private void HandleNavigation(Gamepad gp, List<MenuButton> candidates, List<MenuElementHover> hovers)
     {
         if (_navCooldown > 0f) _navCooldown -= Time.deltaTime;
 
@@ -287,27 +326,158 @@ internal class MenuNavigator : MonoBehaviour
         Vector2 dir = Mathf.Abs(nav.x) > Mathf.Abs(nav.y)
             ? new Vector2(Mathf.Sign(nav.x), 0f)
             : new Vector2(0f, Mathf.Sign(nav.y));
+
+        Vector2 origin = _selectedHover != null
+            ? RectPos(_selectedHover.transform as RectTransform)
+            : (_selected != null ? ScreenPos(_selected) : Vector2.zero);
+
         // Inside a scroll list, stay within the list until its rows are exhausted, so a deep (scrolled-off)
         // row isn't skipped in favour of a fixed button outside the box (e.g. "Back") that's spatially closer.
         // Falling back to the full set only when no same-box target exists lets nav reach Back/footer normally.
-        var box = _selected != null ? _selected.GetComponentInParent<MenuScrollBox>() : null;
-        MenuButton next = null;
+        int next = -1;
+        List<NavEntry> entries = null;
+        var box = (_selectedHover == null && _selected != null) ? _selected.GetComponentInParent<MenuScrollBox>() : null;
         if (box != null)
         {
             var sameBox = candidates.Where(b => b.GetComponentInParent<MenuScrollBox>() == box).ToList();
-            next = NearestInDirection(sameBox, _selected, dir);
+            entries = BuildEntries(sameBox, null);
+            next = NearestInDirection(entries, origin, dir);
         }
-        if (next == null) next = NearestInDirection(candidates, _selected, dir);
+        if (next < 0)
+        {
+            entries = BuildEntries(candidates, hovers);
+            next = NearestInDirection(entries, origin, dir);
+        }
 
         // No in-page target on a horizontal press -> try crossing to the other panel/page.
-        if (next == null && Mathf.Abs(dir.x) > 0.5f && TrySwitchPanel(dir.x < 0 ? -1 : 1))
+        if (next < 0 && Mathf.Abs(dir.x) > 0.5f && TrySwitchPanel(dir.x < 0 ? -1 : 1))
             return;
+        if (next < 0) return;
 
-        if (next != null && next != _selected)
+        var e = entries[next];
+        if (e.Btn == _selected && e.Hover == _selectedHover) return;
+        _selected = e.Btn;
+        _selectedHover = e.Hover;
+        if (e.Btn != null)
         {
-            _selected = next;
-            ScrollIntoView(next);
+            ScrollIntoView(e.Btn);
             if (MenuManager.instance != null) MenuManager.instance.MenuEffectHover();
+        }
+        // Hover widgets need no feedback here: the forced UIMouseHover transition plays
+        // vanilla's own hover sound and positions the selection box natively.
+    }
+
+    // A navigable widget: a vanilla MenuButton OR a MenuElementHover-based hover widget.
+    private struct NavEntry
+    {
+        public MenuButton Btn;
+        public MenuElementHover Hover;
+        public Vector2 Pos;
+    }
+
+    private static List<NavEntry> BuildEntries(List<MenuButton> buttons, List<MenuElementHover> hovers)
+    {
+        var list = new List<NavEntry>(buttons.Count + (hovers != null ? hovers.Count : 0));
+        foreach (var b in buttons) list.Add(new NavEntry { Btn = b, Pos = ScreenPos(b) });
+        if (hovers != null)
+            foreach (var h in hovers) list.Add(new NavEntry { Hover = h, Pos = RectPos(h.transform as RectTransform) });
+        return list;
+    }
+
+    // Hover widgets on the focused page that the navigator can drive: server rows
+    // (MenuElementServer), page arrows (MenuButtonArrow), save files (MenuElementSaveFile).
+    // These are MenuElementHover-based and never appear in MenuManager.allMenuButtons, so a
+    // pad could not reach them at all (playtest bug 2026-06-11: server list unnavigable).
+    // Whitelist by activator component -- random hover surfaces (scroll boxes etc.) stay out.
+    private List<MenuElementHover> HoverCandidates(MenuPage focus)
+    {
+        var list = new List<MenuElementHover>();
+        if (focus == null) return list;
+        foreach (var h in Object.FindObjectsOfType<MenuElementHover>())
+        {
+            if (h == null || !h.isActiveAndEnabled) continue;
+            if (h.GetComponentInParent<MenuPage>() != focus) continue;
+            if (!IsHoverActivatable(h)) continue;
+            list.Add(h);
+        }
+        return list;
+    }
+
+    private static bool IsHoverActivatable(MenuElementHover h)
+    {
+        if (h.GetComponentInParent<MenuElementServer>() != null) return true;
+        if (h.GetComponentInParent<MenuElementSaveFile>() != null) return true;
+        var arrow = h.GetComponentInParent<MenuButtonArrow>();
+        if (arrow != null)
+        {
+            // Arrows fade out via CanvasGroup when there is no next/previous page -- a
+            // faded arrow is not a target.
+            var cg = arrow.GetComponent<CanvasGroup>();
+            return cg == null || cg.alpha > 0.5f;
+        }
+        return false;
+    }
+
+    // A-press on a hover widget: invoke the exact click body vanilla runs on
+    // mouse-click/Confirm-while-hovering (all public seams, mirrored per type).
+    private void ActivateHover(MenuElementHover h)
+    {
+        if (h == null) return;
+        try
+        {
+            var server = h.GetComponentInParent<MenuElementServer>();
+            if (server != null)
+            {
+                var pop = server.GetComponent<MenuButtonPopUp>();
+                if (pop == null) return;
+                // Mirror MenuElementServer.Update's click body (join-confirm popup).
+                MenuManager.instance.MenuEffectClick(MenuManager.MenuClickEffectType.Confirm);
+                MenuManager.instance.PagePopUpTwoOptions(pop, pop.headerText, pop.localizedHeader, pop.headerColor,
+                    pop.bodyText, pop.localizedBody, pop.option1Text, pop.localizedOption1, pop.option2Text,
+                    pop.localizedOption2, pop.richText);
+                Plugin.Log.LogDebug("[Gamepad] Hover select server row");
+                return;
+            }
+            var arrow = h.GetComponentInParent<MenuButtonArrow>();
+            if (arrow != null)
+            {
+                // Mirror MenuButtonArrow.Update's click body.
+                MenuManager.instance.MenuEffectClick(MenuManager.MenuClickEffectType.Confirm);
+                SpringVelocityRef(arrow.hoverSpring) += 50f;
+                arrow.onClick.Invoke();
+                Plugin.Log.LogDebug("[Gamepad] Hover select page arrow");
+                return;
+            }
+            var save = h.GetComponentInParent<MenuElementSaveFile>();
+            if (save != null)
+            {
+                var pageSaves = save.GetComponentInParent<MenuPageSaves>();
+                if (pageSaves == null) return;
+                // Mirror MenuElementSaveFile.Update's click body (opens the save's
+                // play/rename/delete panel).
+                MenuManager.instance.MenuEffectClick(MenuManager.MenuClickEffectType.Confirm);
+                pageSaves.SaveFileSelected(SaveFileNameRef(save), SaveFileBackupsRef(save));
+                Plugin.Log.LogDebug("[Gamepad] Hover select save file");
+            }
+        }
+        catch (System.Exception e) { Plugin.Log.LogError($"[Gamepad] Hover select failed: {e}"); }
+    }
+
+    private static void PickTopmost(List<MenuButton> buttons, List<MenuElementHover> hovers,
+                                    out MenuButton btn, out MenuElementHover hover)
+    {
+        btn = null; hover = null;
+        float bestY = float.MinValue, bestX = float.MaxValue;
+        foreach (var b in buttons)
+        {
+            var p = ScreenPos(b);
+            if (p.y > bestY || (p.y == bestY && p.x < bestX)) { bestY = p.y; bestX = p.x; btn = b; hover = null; }
+        }
+        if (hovers == null) return;
+        foreach (var h in hovers)
+        {
+            var p = RectPos(h.transform as RectTransform);
+            if (p.y > bestY || (p.y == bestY && p.x < bestX)) { bestY = p.y; bestX = p.x; btn = null; hover = h; }
         }
     }
 
@@ -357,27 +527,27 @@ internal class MenuNavigator : MonoBehaviour
     // laterally-closest control in that band. A simple "along + k*perp" cost skips a control that sits
     // offset sideways in the very next row (e.g. a slider's < >) in favour of an x-aligned button further
     // away (the next toggle) — picking the nearest row first prevents that.
-    private static MenuButton NearestInDirection(List<MenuButton> candidates, MenuButton from, Vector2 dir)
+    // Operates on NavEntry positions (buttons + hover widgets); returns the index, -1 = none.
+    // The currently-selected widget sits at the origin (delta 0) and self-excludes via the
+    // minimum-step thresholds.
+    private static int NearestInDirection(List<NavEntry> entries, Vector2 origin, Vector2 dir)
     {
-        Vector2 origin = ScreenPos(from);
-
         // Pass 0 (horizontal only): SAME-ROW first. A slider's < and > sit far apart on one
         // line; without this, a slightly-right control in a DIFFERENT row sets the pass-1
         // band and the same-row > gets excluded (user bug 2026-06-09: couldn't reach the
         // other slider arrow). Same-row = |Δy| within a fraction of typical row spacing.
         if (dir.y == 0f)
         {
-            MenuButton sameRow = null;
+            int sameRow = -1;
             float sameRowAlong = float.MaxValue;
-            foreach (var c in candidates)
+            for (int i = 0; i < entries.Count; i++)
             {
-                if (c == from) continue;
-                Vector2 d0 = ScreenPos(c) - origin;
+                Vector2 d0 = entries[i].Pos - origin;
                 if (Mathf.Abs(d0.y) > 12f) continue;
                 float fwd = d0.x * dir.x;
-                if (fwd > 0.5f && fwd < sameRowAlong) { sameRowAlong = fwd; sameRow = c; }
+                if (fwd > 0.5f && fwd < sameRowAlong) { sameRowAlong = fwd; sameRow = i; }
             }
-            if (sameRow != null) return sameRow;
+            if (sameRow >= 0) return sameRow;
         }
 
         // Pass 1: smallest forward distance (the nearest row/step). On VERTICAL presses,
@@ -388,14 +558,13 @@ internal class MenuNavigator : MonoBehaviour
         // Pass 0 already uses for horizontal presses.
         float minStep = dir.y != 0f ? 12f : 0.5f;
         float minAlong = float.MaxValue;
-        foreach (var c in candidates)
+        for (int i = 0; i < entries.Count; i++)
         {
-            if (c == from) continue;
-            Vector2 delta = ScreenPos(c) - origin;
+            Vector2 delta = entries[i].Pos - origin;
             float along = delta.x * dir.x + delta.y * dir.y;
             if (along > minStep && along < minAlong) minAlong = along;
         }
-        if (minAlong == float.MaxValue) return null;
+        if (minAlong == float.MaxValue) return -1;
 
         // Pass 2: among candidates within a band of that nearest step, pick min lateral offset (then nearest).
         // Band = nearest step + in-row wobble ONLY. The old multiplicative band (minAlong * 1.6) swallowed
@@ -404,17 +573,16 @@ internal class MenuNavigator : MonoBehaviour
         // 93-unit band and won on lateral alignment (text-center x of short 'Mods' wobbles ~19 left).
         // NavDiag-verified 2026-06-09 against every working transition in the session log.
         float band = minAlong + 14f;
-        MenuButton best = null;
+        int best = -1;
         float bestScore = float.MaxValue;
-        foreach (var c in candidates)
+        for (int i = 0; i < entries.Count; i++)
         {
-            if (c == from) continue;
-            Vector2 delta = ScreenPos(c) - origin;
+            Vector2 delta = entries[i].Pos - origin;
             float along = delta.x * dir.x + delta.y * dir.y;
             if (along <= minStep || along > band) continue;
             float perp = Mathf.Abs(delta.x * dir.y - delta.y * dir.x);
             float score = perp * 10000f + along; // lateral offset dominates; along breaks ties
-            if (score < bestScore) { bestScore = score; best = c; }
+            if (score < bestScore) { bestScore = score; best = i; }
         }
         return best;
     }
@@ -505,5 +673,25 @@ internal class MenuNavigator : MonoBehaviour
         ControllerGlyphs.DrawLabel(new Rect(rect.x + 1, rect.y + 1, rect.width, rect.height), text, _style);
         _style.normal.textColor = Color.white;
         ControllerGlyphs.DrawLabel(rect, text, _style);
+    }
+}
+
+// While the controller drives the menu and a hover WIDGET (server row / page arrow / save
+// file) is the navigator's selection, force the game's own hover test: TRUE for the selected
+// widget, FALSE for everything else (parks an idle mouse that happens to rest on a row).
+// Vanilla then runs all its native hover machinery — selection box, hover sound, row fade —
+// and its own Confirm-while-hovering click path keeps working for the physical keyboard.
+// Inert whenever the selection is a regular MenuButton (SelectedHoverRect is null) or the
+// mouse is the active input (ControllerActive false).
+[HarmonyPatch(typeof(SemiFunc), nameof(SemiFunc.UIMouseHover))]
+internal static class HoverElementForcePatch
+{
+    [HarmonyPostfix]
+    private static void Postfix(RectTransform rectTransform, ref bool __result)
+    {
+        if (!MenuNavigator.ControllerActive) return;
+        var sel = MenuNavigator.SelectedHoverRect;
+        if (sel == null) return;
+        __result = ReferenceEquals(rectTransform, sel);
     }
 }
