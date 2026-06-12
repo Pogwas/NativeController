@@ -81,6 +81,7 @@ Please open an [Issue](https://github.com/Pogwas/NativeController/issues) and in
 ### 0.5.0
 
 - **Menu text fields on pad** — lobby name, save rename, server search and lobby password can now be typed with the controller: the on-screen keyboard auto-opens on those screens (A types, B deletes, X space, Start confirms, HIDE key or Back/View hides it, auto-hides when you switch to the mouse). Config: `[Menu Keyboard] Enabled`.
+- **Server browser & saves on pad** — server rows, the page arrows, and save files are now selectable with the controller (they use a different widget type the menu navigation couldn't see before). Also fixed DOWN sometimes sliding sideways on staggered menus like the lobby screen.
 
 ### 0.4.0
 
