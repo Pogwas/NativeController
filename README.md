@@ -13,7 +13,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 - **Native gamepad binding** — the pad goes straight into the game's input system, not a keyboard/mouse emulation layer.
 - **Right-stick look** — configurable speed, invert, deadzone.
 - **Full menu navigation** — D-pad / left stick moves, A confirms, B backs. Covers the vanilla menus, server browser, saved games and REPOConfig's mod menu.
-- **Emote wheel** — hold D-pad Down; right stick picks, release plays. Auto-clears (configurable).
+- **Emote wheel** — hold D-pad Down; right stick picks, release plays. Auto-clears (configurable); the wheel also has a Mute Mic slot (toggles the same mic mute as keyboard B — multiplayer only).
 - **On-screen chat keyboard** — open chat with Back/View and type with the pad. Goes through vanilla chat: live type-out, multiplayer sync, TTS.
 - **Menu text fields on pad** — lobby name, save rename, server search and password screens auto-open the keyboard; vanilla rules apply; hides itself on mouse.
 - **Toggle sprint, grab & crouch** — one press holds the action, a second (or vanilla's own stop conditions) ends it.
