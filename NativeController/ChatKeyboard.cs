@@ -43,7 +43,7 @@ internal class ChatKeyboard : MonoBehaviour
     private const float FlickRearm = 0.3f;  // must return below this (or the configured deadzone, if higher) before the next step (hysteresis)
 
     private readonly PadKeyboardCore _core = new PadKeyboardCore(
-        hasSpace: true, confirmLabel: "SEND", confirmVerb: "send", closeVerb: "close",
+        hasSpace: true, confirmLabel: "SEND",
         hideLabel: "CLOSE", // navigable close key (playtest 2026-06-11: Select-to-close alone wasn't discoverable)
         extraHint: kind => Plugin.ChatHistoryRecallEnabled.Value
             ? ButtonNames.Of(ButtonNames.Control.RStick, kind) + " ↑↓ history" : null);

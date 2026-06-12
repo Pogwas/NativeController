@@ -29,7 +29,6 @@ internal class PadKeyboardCore
 
     private readonly bool _hasSpace;
     private readonly string[] _specialKeys; // "!" + optional SPACE + optional hide key + confirmLabel
-    private readonly string _confirmVerb, _closeVerb;
     private readonly string _hideLabel;     // null = no hide key on the grid
     private readonly Func<ControllerDetect.Kind, string> _extraHint; // null = no extra hint
 
@@ -42,7 +41,7 @@ internal class PadKeyboardCore
     private ControllerDetect.Kind _hintsKind;
     private bool _hintsBuilt;
 
-    internal PadKeyboardCore(bool hasSpace, string confirmLabel, string confirmVerb, string closeVerb, string hideLabel = null,
+    internal PadKeyboardCore(bool hasSpace, string confirmLabel, string hideLabel = null,
                              Func<ControllerDetect.Kind, string> extraHint = null)
     {
         _hasSpace = hasSpace;
@@ -52,8 +51,6 @@ internal class PadKeyboardCore
         if (hideLabel != null) keys.Add(hideLabel); // navigable close key (playtest: the hint row alone wasn't discoverable)
         keys.Add(confirmLabel);
         _specialKeys = keys.ToArray();
-        _confirmVerb = confirmVerb;
-        _closeVerb = closeVerb;
         _extraHint = extraHint;
     }
 
@@ -200,12 +197,13 @@ internal class PadKeyboardCore
             _hintsBuilt = true;
             _hintsKind = kind;
             string extra = _extraHint?.Invoke(kind);
+            // Start/Select still work (send/close) but get no hint line: the grid's own
+            // SEND/CLOSE keys already show those verbs (user feedback 2026-06-12 -- the
+            // extra words overflowed the row).
             _hints =
                 ButtonNames.Of(ButtonNames.Control.South, kind) + " type    " +
                 ButtonNames.Of(ButtonNames.Control.East, kind) + " backspace    " +
-                (_hasSpace ? ButtonNames.Of(ButtonNames.Control.West, kind) + " space    " : "") +
-                ButtonNames.Of(ButtonNames.Control.Start, kind) + " " + _confirmVerb + "    " +
-                ButtonNames.Of(ButtonNames.Control.Select, kind) + " " + _closeVerb +
+                (_hasSpace ? ButtonNames.Of(ButtonNames.Control.West, kind) + " space" : "") +
                 (string.IsNullOrEmpty(extra) ? "" : "    " + extra);
         }
         GUI.Label(new Rect(x0, yS + keyW + gap, panelW, hintH), _hints, _hint);

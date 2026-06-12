@@ -129,7 +129,6 @@ internal class MenuKeyboard : MonoBehaviour
         if (_core == null || _coreHasSpace != hasSpace)
         {
             _core = new PadKeyboardCore(hasSpace, confirmLabel: "ENTER",
-                                        confirmVerb: "confirm", closeVerb: "hide",
                                         hideLabel: "HIDE"); // navigable HIDE key (playtest: hint row alone wasn't discoverable)
             _core.OnChar = TypeChar;
             _core.OnConfirm = Confirm;
