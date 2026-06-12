@@ -10,20 +10,20 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 
 ## Features
 
-- **Native gamepad binding** — your controller plugs straight into the game's input, not a keyboard/mouse emulation layer.
-- **Right-stick look** with configurable speed, invert, and deadzone.
-- **Full menu navigation** — move with the D-pad / left stick, A to confirm, B to back. Works in the vanilla menus *and* REPOConfig's mod menu (sliders, scrolling lists, tabs).
-- **Emote wheel** — hold D-pad Down for a radial wheel of the game's 6 expressions; right stick picks, release plays it. Emotes auto-clear after a few seconds (configurable).
-- **On-screen chat keyboard** — open chat with the pad (Back/View) and a controller-navigable QWERTY keyboard appears: D-pad / left stick moves, A types, B deletes, X = space, Start sends. Your message goes through the game's own chat — other players see you type and the TTS voice speaks it, exactly like keyboard chat.
-- **Menu text fields on pad** — the lobby-name, save-rename, server-search and lobby-password screens automatically show the same on-screen keyboard when you're on controller: D-pad / left stick moves, A types, B deletes, X = space, Start confirms (exactly like pressing Enter), and the HIDE key (or Back/View) tucks it away so you can reach the other buttons. It also hides itself the moment you go back to the mouse, and pops back up on the next pad input. Typing goes into the game's own field, so all the vanilla feedback and rules (length cap, capitals-only fields, password rules) apply.
-- **Toggle sprint, grab & crouch** — press Sprint once to keep sprinting (ends when stamina empties or you stop moving, like vanilla); press Grab once to keep holding, press again to let go; press Crouch once to stay crouched, again to stand.
-- **Button prompts** — vanilla-style hints flanking the inventory (GRAB / LET GO / ROTATE / CLIMB), and the game's own key tags show your controller's buttons (SHOTGUN [X] instead of [E]) while the pad is the active input.
-- **Inventory D-pad arrows** — the three inventory slots show ← ↑ → instead of 1 2 3 while you're playing on the pad, so you always know which D-pad direction equips which slot.
-- **Controller Layout overlay** — an in-game cheat-sheet of the button map, opened from a button added to the Settings menu (needs MenuLib).
-- **Kind-aware button glyphs** — prompts show the right icons for Xbox, PlayStation, or Switch controllers (auto-detected, with a manual override).
-- **Holdable push/pull on the bumpers** — LB/RB drive the grab beam's push/pull as a real held input.
-- **Aim assist** — an optional, gentle nudge toward grabbable items (when close) and enemies (when a weapon or staff is in hand). It's a bounded correction added to your own look — it never overpowers your turn or locks on. Fully configurable, off-switchable.
-- **Splash-screen skip** — a controller button skips the intro logos.
+- **Native gamepad binding** — the pad goes straight into the game's input system, not a keyboard/mouse emulation layer.
+- **Right-stick look** — configurable speed, invert, deadzone.
+- **Full menu navigation** — D-pad / left stick moves, A confirms, B backs. Covers the vanilla menus, server browser, saved games and REPOConfig's mod menu.
+- **Emote wheel** — hold D-pad Down; right stick picks, release plays. Auto-clears (configurable).
+- **On-screen chat keyboard** — open chat with Back/View and type with the pad. Goes through vanilla chat: live type-out, multiplayer sync, TTS.
+- **Menu text fields on pad** — lobby name, save rename, server search and password screens auto-open the keyboard; vanilla rules apply; hides itself on mouse.
+- **Toggle sprint, grab & crouch** — one press holds the action, a second (or vanilla's own stop conditions) ends it.
+- **Button prompts** — GRAB / LET GO / ROTATE / CLIMB hints by the inventory, and the game's key tags show pad buttons (SHOTGUN [X] instead of [E]).
+- **Inventory D-pad arrows** — slots show ← ↑ → instead of 1 2 3 on pad.
+- **Controller Layout overlay** — button-map cheat-sheet in the Settings menu (needs MenuLib).
+- **Kind-aware glyphs** — Xbox / PlayStation / Switch icons, auto-detected with manual override.
+- **Holdable push/pull** — LB/RB drive the grab beam as a real held input.
+- **Aim assist** — gentle, bounded nudge toward items and enemies; never overpowers your turn or locks on. Fully configurable.
+- **Splash-screen skip** — a pad button skips the intro logos.
 
 ## Default controls
 
