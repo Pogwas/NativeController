@@ -19,7 +19,7 @@ internal static class LookPatch
     {
         if (!Plugin.Enabled.Value) return;
         if (EmoteWheel.Open) return; // wheel open: stick is selecting an emote, not looking
-        if (ChatKeyboard.Open) return; // chat OSK open: stick flicks recall history, not look
+        if (ChatKeyboard.Open) return; // chat OSK open: stick is the history-recall surface, not look (intentional even with recall disabled -- no camera lurch while typing)
 
         // 1) Right-stick look (existing behaviour) — counts as the player's own input for the clamp.
         var gp = Gamepad.current;
@@ -56,7 +56,7 @@ internal static class LookPatch
     {
         if (!Plugin.Enabled.Value) return;
         if (EmoteWheel.Open) return; // wheel open: stick is selecting an emote, not looking
-        if (ChatKeyboard.Open) return; // chat OSK open: stick flicks recall history, not look
+        if (ChatKeyboard.Open) return; // chat OSK open: stick is the history-recall surface, not look (intentional even with recall disabled -- no camera lurch while typing)
 
         var gp = Gamepad.current;
         if (gp != null)

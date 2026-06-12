@@ -72,6 +72,7 @@ internal class PadKeyboardCore
     {
         _row = 1; _col = 0; // start on Q
         _heldX = 0; _heldY = 0; _repeatTimer = 0f;
+        _hintsBuilt = false;
     }
 
     // Call from the front-end's Update while its panel is open.
@@ -198,13 +199,14 @@ internal class PadKeyboardCore
         {
             _hintsBuilt = true;
             _hintsKind = kind;
+            string extra = _extraHint?.Invoke(kind);
             _hints =
                 ButtonNames.Of(ButtonNames.Control.South, kind) + " type    " +
                 ButtonNames.Of(ButtonNames.Control.East, kind) + " backspace    " +
                 (_hasSpace ? ButtonNames.Of(ButtonNames.Control.West, kind) + " space    " : "") +
                 ButtonNames.Of(ButtonNames.Control.Start, kind) + " " + _confirmVerb + "    " +
                 ButtonNames.Of(ButtonNames.Control.Select, kind) + " " + _closeVerb +
-                (_extraHint != null ? "    " + _extraHint(kind) : "");
+                (string.IsNullOrEmpty(extra) ? "" : "    " + extra);
         }
         GUI.Label(new Rect(x0, yS + keyW + gap, panelW, hintH), _hints, _hint);
     }

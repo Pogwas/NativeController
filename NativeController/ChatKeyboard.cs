@@ -40,12 +40,13 @@ internal class ChatKeyboard : MonoBehaviour
     private const int MaxChatLength = 50;   // vanilla cap (ChatManager.cs:428)
     private const float PadOpenWindow = 0.25f; // Select-press recency that counts as "pad opened chat"
     private const float FlickFire = 0.6f;   // |rightStick.y| that triggers one history step
-    private const float FlickRearm = 0.3f;  // must return below this before the next step (hysteresis)
+    private const float FlickRearm = 0.3f;  // must return below this (or the configured deadzone, if higher) before the next step (hysteresis)
 
     private readonly PadKeyboardCore _core = new PadKeyboardCore(
         hasSpace: true, confirmLabel: "SEND", confirmVerb: "send", closeVerb: "close",
         hideLabel: "CLOSE", // navigable close key (playtest 2026-06-11: Select-to-close alone wasn't discoverable)
-        extraHint: kind => ButtonNames.Of(ButtonNames.Control.RStick, kind) + " ↑↓ history");
+        extraHint: kind => Plugin.ChatHistoryRecallEnabled.Value
+            ? ButtonNames.Of(ButtonNames.Control.RStick, kind) + " ↑↓ history" : null);
 
     private bool _selectArmed;              // ignore the Select press that opened chat
     private float _lastSelectPress = -10f;  // pad-open detection (Update-order safe)
@@ -154,9 +155,10 @@ internal class ChatKeyboard : MonoBehaviour
     // there is no hold-repeat. Look is suppressed while Open (LookPatch), freeing the stick.
     private void HandleHistoryFlick(Gamepad gp, ChatManager chat)
     {
+        if (!chat.StateIsActive()) return; // not during Send/Possessed -- a flick must never stomp an outgoing or possessed message
         if (!Plugin.ChatHistoryRecallEnabled.Value) return;
         float y = gp.rightStick.ReadValue().y;
-        if (Mathf.Abs(y) < FlickRearm)
+        if (Mathf.Abs(y) < Mathf.Max(FlickRearm, Plugin.StickDeadzone.Value))
         {
             _flickArmed = true;
             return;
