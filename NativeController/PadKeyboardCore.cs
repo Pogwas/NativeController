@@ -31,6 +31,7 @@ internal class PadKeyboardCore
     private readonly string[] _specialKeys; // "!" + optional SPACE + optional hide key + confirmLabel
     private readonly string _confirmVerb, _closeVerb;
     private readonly string _hideLabel;     // null = no hide key on the grid
+    private readonly Func<ControllerDetect.Kind, string> _extraHint; // null = no extra hint
 
     private int _row, _col;                 // cursor
     private int _heldX, _heldY;             // current held nav direction
@@ -41,7 +42,8 @@ internal class PadKeyboardCore
     private ControllerDetect.Kind _hintsKind;
     private bool _hintsBuilt;
 
-    internal PadKeyboardCore(bool hasSpace, string confirmLabel, string confirmVerb, string closeVerb, string hideLabel = null)
+    internal PadKeyboardCore(bool hasSpace, string confirmLabel, string confirmVerb, string closeVerb, string hideLabel = null,
+                             Func<ControllerDetect.Kind, string> extraHint = null)
     {
         _hasSpace = hasSpace;
         _hideLabel = hideLabel;
@@ -52,6 +54,7 @@ internal class PadKeyboardCore
         _specialKeys = keys.ToArray();
         _confirmVerb = confirmVerb;
         _closeVerb = closeVerb;
+        _extraHint = extraHint;
     }
 
     private static string[][] BuildKeyLabels()
@@ -200,7 +203,8 @@ internal class PadKeyboardCore
                 ButtonNames.Of(ButtonNames.Control.East, kind) + " backspace    " +
                 (_hasSpace ? ButtonNames.Of(ButtonNames.Control.West, kind) + " space    " : "") +
                 ButtonNames.Of(ButtonNames.Control.Start, kind) + " " + _confirmVerb + "    " +
-                ButtonNames.Of(ButtonNames.Control.Select, kind) + " " + _closeVerb;
+                ButtonNames.Of(ButtonNames.Control.Select, kind) + " " + _closeVerb +
+                (_extraHint != null ? "    " + _extraHint(kind) : "");
         }
         GUI.Label(new Rect(x0, yS + keyW + gap, panelW, hintH), _hints, _hint);
     }
