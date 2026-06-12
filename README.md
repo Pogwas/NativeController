@@ -15,6 +15,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 - **Full menu navigation** — move with the D-pad / left stick, A to confirm, B to back. Works in the vanilla menus *and* REPOConfig's mod menu (sliders, scrolling lists, tabs).
 - **Emote wheel** — hold D-pad Down for a radial wheel of the game's 6 expressions; right stick picks, release plays it. Emotes auto-clear after a few seconds (configurable).
 - **On-screen chat keyboard** — open chat with the pad (Back/View) and a controller-navigable QWERTY keyboard appears: D-pad / left stick moves, A types, B deletes, X = space, Start sends. Your message goes through the game's own chat — other players see you type and the TTS voice speaks it, exactly like keyboard chat.
+- **Menu text fields on pad** — the lobby-name, save-rename, server-search and lobby-password screens automatically show the same on-screen keyboard when you're on controller: D-pad / left stick moves, A types, B deletes, X = space, Start confirms (exactly like pressing Enter), Back/View hides it so you can reach the other buttons. Typing goes into the game's own field, so all the vanilla feedback and rules (length cap, capitals-only fields, password rules) apply.
 - **Toggle sprint, grab & crouch** — press Sprint once to keep sprinting (ends when stamina empties or you stop moving, like vanilla); press Grab once to keep holding, press again to let go; press Crouch once to stay crouched, again to stand.
 - **Button prompts** — vanilla-style hints flanking the inventory (GRAB / LET GO / ROTATE / CLIMB), and the game's own key tags show your controller's buttons (SHOTGUN [X] instead of [E]) while the pad is the active input.
 - **Inventory D-pad arrows** — the three inventory slots show ← ↑ → instead of 1 2 3 while you're playing on the pad, so you always know which D-pad direction equips which slot.
@@ -63,6 +64,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 | `Emote Wheel` | Toggle, emote duration, face-preview camera framing |
 | `Prompts` | Crosshair button prompts, controller key tags, inventory D-pad arrows |
 | `Chat Keyboard` | On-screen chat keyboard: toggle + panel size |
+| `Menu Keyboard` | On-screen keyboard for menu text fields: toggle (size follows Chat Keyboard Scale) |
 
 ## Bug reports
 
@@ -75,6 +77,10 @@ Please open an [Issue](https://github.com/Pogwas/NativeController/issues) and in
 - Steps to reproduce
 
 ## Changelog
+
+### 0.5.0
+
+- **Menu text fields on pad** — lobby name, save rename, server search and lobby password can now be typed with the controller: the on-screen keyboard auto-opens on those screens (A types, B deletes, X space, Start confirms, Back/View hides it). Config: `[Menu Keyboard] Enabled`.
 
 ### 0.4.0
 
