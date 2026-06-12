@@ -41,6 +41,8 @@ internal class PadKeyboardCore
     private ControllerDetect.Kind _hintsKind;
     private bool _hintsBuilt;
 
+    internal float LastPanelTop { get; private set; } // screen-space y of the panel's top edge, set each Draw
+
     internal PadKeyboardCore(bool hasSpace, string confirmLabel, string hideLabel = null,
                              Func<ControllerDetect.Kind, string> extraHint = null)
     {
@@ -165,6 +167,7 @@ internal class PadKeyboardCore
         float x0 = (Screen.width - panelW) / 2f;
         // Sit just above the bottom edge; chat text / menu fields render higher up the screen.
         float y0 = Screen.height - panelH - 40f * s;
+        LastPanelTop = y0;
 
         GUI.color = new Color(0f, 0f, 0f, 0.55f);
         GUI.DrawTexture(new Rect(x0, y0, panelW, panelH), Texture2D.whiteTexture);

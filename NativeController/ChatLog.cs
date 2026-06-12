@@ -32,6 +32,7 @@ internal class ChatLog : MonoBehaviour
     // Layout cache (instance: rebuilt cheaply on scene-recreate).
     private int _layoutVersion = -1, _layoutCount;
     private float _layoutScale = -1f, _panelW;
+    private float _layoutScreenW = -1f;
     private float[] _nameWidths;
 
     internal static void Append(string name, string text)
@@ -58,11 +59,12 @@ internal class ChatLog : MonoBehaviour
         int n = Mathf.Min(Plugin.ChatLogMaxVisible.Value, Entries.Count);
         float lineH = 20f * s, padX = 8f * s, padY = 5f * s, margin = 12f * s;
 
-        if (_layoutVersion != _entriesVersion || !Mathf.Approximately(_layoutScale, s) || _layoutCount != n)
+        if (_layoutVersion != _entriesVersion || !Mathf.Approximately(_layoutScale, s) || _layoutCount != n || !Mathf.Approximately(_layoutScreenW, Screen.width))
         {
             _layoutVersion = _entriesVersion;
             _layoutScale = s;
             _layoutCount = n;
+            _layoutScreenW = Screen.width;
             if (_nameWidths == null || _nameWidths.Length < n) _nameWidths = new float[n];
             _panelW = 0f;
             for (int i = 0; i < n; i++)
@@ -77,7 +79,12 @@ internal class ChatLog : MonoBehaviour
         }
 
         float panelH = n * lineH + 2f * padY;
-        float x0 = margin, y0 = Screen.height - margin - panelH;
+        // Sit above the chat OSK while it's open (the log is forced visible exactly then, and
+        // IMGUI draw order across components is undefined). PanelTop is 0 for the OSK's first
+        // frame -- one frame at the bottom anchor is imperceptible.
+        float bottom = Screen.height - margin;
+        if (ChatKeyboard.Open && ChatKeyboard.PanelTop > 0f) bottom = ChatKeyboard.PanelTop - margin;
+        float x0 = margin, y0 = bottom - panelH;
 
         GUI.color = new Color(0f, 0f, 0f, 0.55f * alpha); // backing strip, OSK panel style
         GUI.DrawTexture(new Rect(x0, y0, _panelW, panelH), Texture2D.whiteTexture);
@@ -89,7 +96,7 @@ internal class ChatLog : MonoBehaviour
             GUI.color = new Color(1f, 0.85f, 0.3f, alpha); // gold name (matches EmoteWheel/OSK hover)
             GUI.Label(new Rect(x0 + padX, y, _nameWidths[i], lineH), e.Name, _name);
             GUI.color = new Color(1f, 1f, 1f, alpha);
-            GUI.Label(new Rect(x0 + padX + _nameWidths[i], y, _panelW - 2f * padX - _nameWidths[i], lineH), e.Text, _line);
+            GUI.Label(new Rect(x0 + padX + _nameWidths[i], y, Mathf.Max(0f, _panelW - 2f * padX - _nameWidths[i]), lineH), e.Text, _line);
         }
         GUI.color = Color.white;
     }
@@ -122,9 +129,17 @@ internal class ChatLog : MonoBehaviour
 [HarmonyPatch]
 internal static class ChatLogCapturePatch
 {
-    private static readonly AccessTools.FieldRef<PlayerAvatar, string> PlayerNameRef =
-        AccessTools.FieldRefAccess<PlayerAvatar, string>("playerName");
+    // Resolved in a guarded cctor: a renamed field must degrade the log to a warn-once no-op,
+    // never fault the type -- a faulted type would make every patched ChatMessageSpeak call
+    // throw TypeInitializationException into vanilla and break chat itself.
+    private static readonly AccessTools.FieldRef<PlayerAvatar, string> PlayerNameRef;
     private static bool _warned;
+
+    static ChatLogCapturePatch()
+    {
+        try { PlayerNameRef = AccessTools.FieldRefAccess<PlayerAvatar, string>("playerName"); }
+        catch { PlayerNameRef = null; } // warned on first postfix call
+    }
 
     // Postfix runs even when the body no-ops (solo voiceChat is null), so capture works
     // wherever a message exists. /-commands eaten by DebugCommandHandler never get here.
@@ -132,16 +147,21 @@ internal static class ChatLogCapturePatch
     [HarmonyPostfix]
     private static void Postfix(PlayerAvatar __instance, string _message)
     {
+        // Capture honors the toggle too (off = the mod records nothing, per the config's
+        // master-toggle wording) -- so re-enabling mid-session leaves a gap. Deliberate.
         if (!Plugin.Enabled.Value || !Plugin.ChatLogEnabled.Value) return;
         try
         {
+            if (PlayerNameRef == null) { WarnOnce("playerName field not found"); return; }
             ChatLog.Append(PlayerNameRef(__instance), _message);
         }
-        catch (Exception e)
-        {
-            if (_warned) return;
-            _warned = true;
-            Plugin.Log.LogWarning($"[ChatLog] Capture error (further warnings suppressed): {e.Message}");
-        }
+        catch (Exception e) { WarnOnce(e.Message); }
+    }
+
+    private static void WarnOnce(string why)
+    {
+        if (_warned) return;
+        _warned = true;
+        Plugin.Log.LogWarning($"[ChatLog] Capture disabled (further warnings suppressed): {why}");
     }
 }

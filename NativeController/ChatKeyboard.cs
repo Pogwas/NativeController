@@ -36,6 +36,7 @@ internal class ChatKeyboard : MonoBehaviour
             AccessTools.Method(typeof(ChatManager), "StateSet"));
 
     internal static bool Open; // read by ChatKeyboardMapGuard
+    internal static float PanelTop; // OSK top edge while Open (0 until the first Draw) -- read by ChatLog
 
     private const int MaxChatLength = 50;   // vanilla cap (ChatManager.cs:428)
     private const float PadOpenWindow = 0.25f; // Select-press recency that counts as "pad opened chat"
@@ -65,6 +66,7 @@ internal class ChatKeyboard : MonoBehaviour
     internal static void ResetState()
     {
         Open = false;
+        PanelTop = 0f;
     }
 
     private void Update()
@@ -103,6 +105,7 @@ internal class ChatKeyboard : MonoBehaviour
             if (gp != null && Time.unscaledTime - _lastSelectPress < PadOpenWindow)
             {
                 Open = true;
+                PanelTop = 0f; // never reuse a stale top from a previous open
                 _core.Reset();
                 _selectArmed = false;
                 _flickArmed = false; // require center before the first history flick
@@ -234,6 +237,7 @@ internal class ChatKeyboard : MonoBehaviour
     {
         if (!Open) return;
         _core.Draw(Plugin.ChatKeyboardScale.Value);
+        PanelTop = _core.LastPanelTop;
     }
 }
 
