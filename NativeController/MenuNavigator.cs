@@ -327,6 +327,25 @@ internal class MenuNavigator : MonoBehaviour
             ? new Vector2(Mathf.Sign(nav.x), 0f)
             : new Vector2(0f, Mathf.Sign(nav.y));
 
+        // Saves page, RIGHT from a save file: jump straight to LOAD SAVE -- the primary
+        // action of the panel this save opened -- not to the save-name/rename header the
+        // spatial pick lands on (user preference 2026-06-11). RIGHT from NEW GAME (a
+        // MenuButton) stays spatial and still reaches the name header.
+        if (dir.x > 0.5f && _selectedHover != null)
+        {
+            var saveEl = _selectedHover.GetComponentInParent<MenuElementSaveFile>();
+            var pageSaves = saveEl != null ? saveEl.GetComponentInParent<MenuPageSaves>() : null;
+            var loadGo = pageSaves != null ? pageSaves.saveFileInfoLoadButton : null;
+            var loadBtn = loadGo != null && loadGo.activeInHierarchy ? loadGo.GetComponentInChildren<MenuButton>() : null;
+            if (loadBtn != null && candidates.Contains(loadBtn))
+            {
+                _selected = loadBtn;
+                _selectedHover = null;
+                if (MenuManager.instance != null) MenuManager.instance.MenuEffectHover();
+                return;
+            }
+        }
+
         Transform fromT = _selectedHover != null ? _selectedHover.transform
                                                  : (_selected != null ? _selected.transform : null);
         if (fromT == null) return;
