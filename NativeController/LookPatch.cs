@@ -19,6 +19,7 @@ internal static class LookPatch
     {
         if (!Plugin.Enabled.Value) return;
         if (EmoteWheel.Open) return; // wheel open: stick is selecting an emote, not looking
+        if (ChatKeyboard.Open) return; // chat OSK open: stick flicks recall history, not look
 
         // 1) Right-stick look (existing behaviour) — counts as the player's own input for the clamp.
         var gp = Gamepad.current;
@@ -55,6 +56,7 @@ internal static class LookPatch
     {
         if (!Plugin.Enabled.Value) return;
         if (EmoteWheel.Open) return; // wheel open: stick is selecting an emote, not looking
+        if (ChatKeyboard.Open) return; // chat OSK open: stick flicks recall history, not look
 
         var gp = Gamepad.current;
         if (gp != null)
