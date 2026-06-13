@@ -18,6 +18,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 - **Chat log** — a regular chat box of recent messages (names, newest at bottom), bottom-left; vanilla has none.
 - **Menu text fields on pad** — lobby name, save rename, server search and password screens auto-open the keyboard; vanilla rules apply; hides itself on mouse.
 - **Push-to-talk on pad** — bind any pad button (`[Gamepad] PushToTalkButton`) to hold-to-talk when the game's Push to Talk setting is on; the button keeps its normal function.
+- **Transmit indicator** — with Push to Talk on, a mic icon (vanilla's, mirrored to the left) shows while your mic is hot and blinks while you're actually heard. Config: `[Voice Indicator]`.
 - **Toggle sprint, grab & crouch** — one press holds the action, a second (or vanilla's own stop conditions) ends it.
 - **Button prompts** — GRAB / LET GO / ROTATE / CLIMB hints by the inventory, and the game's key tags show pad buttons (SHOTGUN [X] instead of [E]).
 - **Inventory D-pad arrows** — slots show ← ↑ → instead of 1 2 3 on pad.
@@ -69,6 +70,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 | `Chat Keyboard` | On-screen chat keyboard: toggle, plus `HistoryRecallEnabled` (default `true`) — right-stick flick up/down while the chat keyboard is open recalls recently sent messages (up = older, down = newer) |
 | `Menu Keyboard` | On-screen keyboard for menu text fields: toggle (size follows `[Chat] Scale`) |
 | `Chat Log` | Bottom-left chat box of recent messages: `Enabled`, `VisibleSeconds` (default `6` — how long it stays after a message; `0` = only while chat is open), `MaxVisible` (default `8` lines); size follows `[Chat] Scale` |
+| `Voice Indicator` | Left-side mic icon while your mic is transmitting in Push to Talk mode: `Enabled`, `SpeakThreshold` (default `0.05` — loudness above which the icon blinks) |
 
 ## Bug reports
 
