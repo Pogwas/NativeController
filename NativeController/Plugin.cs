@@ -46,7 +46,7 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> ChatLogVisibleSeconds;
     internal static ConfigEntry<int> ChatLogMaxVisible;
     internal static ConfigEntry<bool> VoiceIndicatorEnabled;
-    internal static ConfigEntry<float> VoiceSpeakThreshold;
+    internal static ConfigEntry<bool> HideMouseCursorOnPad;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
     internal static ConfigEntry<bool> AimAssistItems;
@@ -115,6 +115,8 @@ public class Plugin : BaseUnityPlugin
         PushToTalkButton = Config.Bind("Gamepad", "PushToTalkButton", PadButton.None,
             "Hold this pad button to talk when the game's 'Push to Talk' audio setting is ON (works exactly like holding V). The chosen button KEEPS its normal function too — pick a conflict you can live with. None = off.");
         PushToTalkButton.SettingChanged += (s, e) => GamepadBindingsPatch.RebindPushToTalk();
+        HideMouseCursorOnPad = Config.Bind("Gamepad", "HideMouseCursor", true,
+            "Hide the game's menu mouse pointer while the controller is the active input. It comes back the moment you move the mouse.");
         ChatKeyboardEnabled = Config.Bind("Chat Keyboard", "Enabled", true,
             "Show an on-screen keyboard when you open chat with the controller (Back/View). D-pad / left stick moves, A types, B deletes, X = space, Start sends, Back/View closes. Chat opened from the keyboard never shows it.");
         // ONE size knob for every chat-UI surface (user 2026-06-12: separate keyboard-Scale +
@@ -132,9 +134,7 @@ public class Plugin : BaseUnityPlugin
         ChatLogMaxVisible = Config.Bind("Chat Log", "MaxVisible", 8,
             new ConfigDescription("Maximum chat lines shown.", new AcceptableValueRange<int>(1, 15)));
         VoiceIndicatorEnabled = Config.Bind("Voice Indicator", "Enabled", true,
-            "When the game's Push to Talk setting is ON, show the mic icon (at the mute icon's spot - the two states are opposites and never show together) while push-to-talk is held and you're not muted. Works even without a microphone, as input feedback. Blinks while your voice is actually going out. Vanilla gives no transmit feedback at all.");
-        VoiceSpeakThreshold = Config.Bind("Voice Indicator", "SpeakThreshold", 0.05f,
-            new ConfigDescription("Mic loudness above which the icon blinks ('speaking'). Lower if it never blinks, raise if it always blinks.", new AcceptableValueRange<float>(0f, 1f)));
+            "When the game's Push to Talk setting is ON, show the muted-mic icon (at its usual spot) while your mic is COLD - i.e. while you are NOT holding push-to-talk. Holding the talk button clears it: icon = silent, empty = live. Works even without a microphone. Vanilla gives no push-to-talk feedback at all.");
 
         AimAssistEnabled = Config.Bind("Aim Assist", "Enabled", true,
             "Master toggle for aim assist (gently nudges your view toward items, and toward enemies when a weapon/staff is held).");

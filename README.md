@@ -18,7 +18,8 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 - **Chat log** — a regular chat box of recent messages (names, newest at bottom), bottom-left; vanilla has none.
 - **Menu text fields on pad** — lobby name, save rename, server search and password screens auto-open the keyboard; vanilla rules apply; hides itself on mouse.
 - **Push-to-talk on pad** — bind any pad button (`[Gamepad] PushToTalkButton`) to hold-to-talk when the game's Push to Talk setting is on; the button keeps its normal function.
-- **Transmit indicator** — with Push to Talk on, the mic icon shows while push-to-talk is held (mute and talking are opposite states, so they share the icon spot) and blinks while you're actually heard. Works as input feedback even without a microphone. Config: `[Voice Indicator]`.
+- **Push-to-talk indicator** — with Push to Talk on, the muted-mic icon shows while your mic is cold and clears the moment you hold the talk button: icon = silent, empty = live. Works even without a microphone. Config: `[Voice Indicator]`.
+- **No idle mouse pointer on pad** — the menu mouse pointer hides while the controller is the active input and returns on mouse movement. Config: `[Gamepad] HideMouseCursor`.
 - **Toggle sprint, grab & crouch** — one press holds the action, a second (or vanilla's own stop conditions) ends it.
 - **Button prompts** — GRAB / LET GO / ROTATE / CLIMB hints by the inventory, and the game's key tags show pad buttons (SHOTGUN [X] instead of [E]).
 - **Inventory D-pad arrows** — slots show ← ↑ → instead of 1 2 3 on pad.
@@ -62,7 +63,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 
 | Section | What it controls |
 |---|---|
-| `Gamepad` | Master toggle, right-stick look speed (X/Y), invert X/Y, stick deadzone, menu cursor speed, toggle sprint/grab/crouch, glyph style override (Auto / Xbox / PlayStation / Switch), `PushToTalkButton` (default `None`) — hold to talk when the game's Push to Talk setting is on |
+| `Gamepad` | Master toggle, right-stick look speed (X/Y), invert X/Y, stick deadzone, menu cursor speed, toggle sprint/grab/crouch, glyph style override (Auto / Xbox / PlayStation / Switch), `PushToTalkButton` (default `None`) — hold to talk when the game's Push to Talk setting is on, `HideMouseCursor` (default `true`) — no idle menu pointer while the pad is active |
 | `Aim Assist` | Toggle + item/enemy toggles, and the bounded-nudge tuning: Gain, MaxFraction (the no-lock cap), MaxDegPerFrame, IdleDrift, ActiveThreshold, MaxAngle (cone), ItemRange, EnemyRange, DeadZone |
 | `Emote Wheel` | Toggle, emote duration, face-preview camera framing |
 | `Prompts` | Crosshair button prompts, controller key tags, inventory D-pad arrows |
@@ -70,7 +71,7 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 | `Chat Keyboard` | On-screen chat keyboard: toggle, plus `HistoryRecallEnabled` (default `true`) — right-stick flick up/down while the chat keyboard is open recalls recently sent messages (up = older, down = newer) |
 | `Menu Keyboard` | On-screen keyboard for menu text fields: toggle (size follows `[Chat] Scale`) |
 | `Chat Log` | Bottom-left chat box of recent messages: `Enabled`, `VisibleSeconds` (default `6` — how long it stays after a message; `0` = only while chat is open), `MaxVisible` (default `8` lines); size follows `[Chat] Scale` |
-| `Voice Indicator` | Mic icon (at the mute icon's spot) while push-to-talk is held: `Enabled`, `SpeakThreshold` (default `0.05` — loudness above which the icon blinks) |
+| `Voice Indicator` | Muted-mic icon while your mic is cold in Push to Talk mode (clears while you hold the talk button): `Enabled` |
 
 ## Bug reports
 
