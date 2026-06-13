@@ -41,7 +41,7 @@ internal class VoiceIndicator : MonoBehaviour
         catch { RefsOk = false; } // warned on first Update
     }
 
-    private const float BlinkHz = 1.5f; // speech pulse rate (feel, not balance -- constant)
+    private const float BlinkHz = 0.75f; // |sin| doubles the perceived rate -> ~1.5 visible pulses/sec
 
     private GameObject _icon;    // our clone; dies with the scene's canvas -> lazily re-created
     private CanvasGroup _group;
@@ -106,9 +106,17 @@ internal class VoiceIndicator : MonoBehaviour
         try
         {
             ToggleMuteUI muteUi = FindObjectOfType<ToggleMuteUI>(true);
-            if (muteUi == null) { _cloneFailedThisScene = true; return false; }
+            if (muteUi == null)
+            {
+                _cloneFailedThisScene = true;
+                Plugin.Log.LogDebug("[VoiceIndicator] No ToggleMuteUI widget in this scene -- no indicator here.");
+                return false;
+            }
 
             Vector3 home = InitialPositionRef(muteUi); // authored position, no hide offset
+            // An inactive widget whose Start hasn't run yet has initialPosition = default --
+            // fall back to its authored transform position rather than parking at canvas center.
+            if (home == Vector3.zero && !muteUi.isActiveAndEnabled) home = muteUi.transform.localPosition;
 
             GameObject src = muteUi.gameObject;
             _icon = Instantiate(src, src.transform.parent);
@@ -129,6 +137,9 @@ internal class VoiceIndicator : MonoBehaviour
         }
         catch (Exception e)
         {
+            if (_icon != null) Destroy(_icon); // never leave a half-built (still-active) clone behind
+            _icon = null;
+            _group = null;
             _cloneFailedThisScene = true;
             WarnOnce(e.Message);
             return false;
