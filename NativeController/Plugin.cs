@@ -45,6 +45,8 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> ChatLogEnabled;
     internal static ConfigEntry<float> ChatLogVisibleSeconds;
     internal static ConfigEntry<int> ChatLogMaxVisible;
+    internal static ConfigEntry<bool> VoiceIndicatorEnabled;
+    internal static ConfigEntry<float> VoiceSpeakThreshold;
 
     internal static ConfigEntry<bool> AimAssistEnabled;
     internal static ConfigEntry<bool> AimAssistItems;
@@ -68,6 +70,7 @@ public class Plugin : BaseUnityPlugin
     private static GameObject _chatKeyboardGO;
     private static GameObject _menuKeyboardGO;
     private static GameObject _chatLogGO;
+    private static GameObject _voiceIndicatorGO;
 
     private void Awake()
     {
@@ -128,6 +131,10 @@ public class Plugin : BaseUnityPlugin
             new ConfigDescription("How long the chat box stays on screen after a message arrives (fades out at the end). 0 = only visible while chat is open.", new AcceptableValueRange<float>(0f, 30f)));
         ChatLogMaxVisible = Config.Bind("Chat Log", "MaxVisible", 8,
             new ConfigDescription("Maximum chat lines shown.", new AcceptableValueRange<int>(1, 15)));
+        VoiceIndicatorEnabled = Config.Bind("Voice Indicator", "Enabled", true,
+            "When the game's Push to Talk setting is ON, show a mic icon on the LEFT side of the screen while your mic is transmitting (held PTT button/key, not muted). It blinks while your voice is actually going out. Vanilla gives no transmit feedback at all.");
+        VoiceSpeakThreshold = Config.Bind("Voice Indicator", "SpeakThreshold", 0.05f,
+            new ConfigDescription("Mic loudness above which the icon blinks ('speaking'). Lower if it never blinks, raise if it always blinks.", new AcceptableValueRange<float>(0f, 1f)));
 
         AimAssistEnabled = Config.Bind("Aim Assist", "Enabled", true,
             "Master toggle for aim assist (gently nudges your view toward items, and toward enemies when a weapon/staff is held).");
@@ -222,9 +229,16 @@ public class Plugin : BaseUnityPlugin
             DontDestroyOnLoad(_chatLogGO);
             Log.LogDebug("[Gamepad] ChatLog (re)created.");
         }
+        if (_voiceIndicatorGO == null)
+        {
+            _voiceIndicatorGO = new GameObject("NativeController.VoiceIndicator", typeof(VoiceIndicator));
+            DontDestroyOnLoad(_voiceIndicatorGO);
+            Log.LogDebug("[Gamepad] VoiceIndicator (re)created.");
+        }
         EmoteWheel.ResetState(); // every scene load: forget toggled faces, refresh labels
         ChatKeyboard.ResetState(); // every scene load: never carry a stale-open panel across levels
         MenuKeyboard.ResetState(); // every scene load: never carry a stale-open panel across scenes
+        VoiceIndicator.ResetState(); // every scene load: allow a fresh clone attempt
         ControllerDetect.ResetLevelTouch(); // inventory arrows wait for the first pad touch per level
     }
 }
