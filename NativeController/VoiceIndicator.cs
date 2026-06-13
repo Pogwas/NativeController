@@ -69,22 +69,12 @@ internal class VoiceIndicator : MonoBehaviour
         try
         {
             PlayerVoiceChat voice = VoiceChatRef(avatar);
-            if (voice == null)
-            {
-                // Solo: no voice chat exists (runtime quirk).
-                if (SemiFunc.InputHold(InputKey.PushToTalk)) Diag("voiceChat is null (solo, or not fetched yet)");
-                Hide();
-                return;
-            }
+            if (voice == null) { Hide(); return; } // solo: no voice chat exists (runtime quirk)
             hot = PushToTalkRef(audio)             // PTT mode only (open mic would be always-on)
-                  && MicEnabledRef(voice)
+                  && MicEnabledRef(voice)          // false with no recording device at all (diagnosed 2026-06-12)
                   && !ToggleMuteRef(data)          // muted: vanilla's own icon owns that story
                   && SemiFunc.InputHold(InputKey.PushToTalk);
             loudness = ClipLoudnessNoTTSRef(voice);
-            if (!hot && SemiFunc.InputHold(InputKey.PushToTalk))
-            {
-                Diag($"pushToTalk={PushToTalkRef(audio)} micEnabled={MicEnabledRef(voice)} muted={ToggleMuteRef(data)}");
-            }
         }
         catch (Exception e) { WarnOnce(e.Message); return; }
 
@@ -102,17 +92,6 @@ internal class VoiceIndicator : MonoBehaviour
     private void Hide()
     {
         if (_icon != null && _icon.activeSelf) _icon.SetActive(false);
-    }
-
-    // TEMP diagnostic for the icon-never-shows investigation (2026-06-12): when the PTT input
-    // is held but the icon can't show, name the failing gate. Throttled; remove after diagnosis.
-    private float _nextDiag;
-
-    private void Diag(string why)
-    {
-        if (Time.unscaledTime < _nextDiag) return;
-        _nextDiag = Time.unscaledTime + 3f;
-        Plugin.Log.LogInfo($"[VoiceIndicator] Not showing: {why}");
     }
 
     // Clone vanilla's mute widget and mirror it to the LEFT. SemiUI widgets are positioned by
