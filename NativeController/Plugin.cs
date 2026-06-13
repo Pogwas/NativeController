@@ -132,7 +132,7 @@ public class Plugin : BaseUnityPlugin
         ChatLogMaxVisible = Config.Bind("Chat Log", "MaxVisible", 8,
             new ConfigDescription("Maximum chat lines shown.", new AcceptableValueRange<int>(1, 15)));
         VoiceIndicatorEnabled = Config.Bind("Voice Indicator", "Enabled", true,
-            "When the game's Push to Talk setting is ON, show a mic icon on the LEFT side of the screen while your mic is transmitting (held PTT button/key, not muted). It blinks while your voice is actually going out. Vanilla gives no transmit feedback at all.");
+            "When the game's Push to Talk setting is ON, show the mic icon (at the mute icon's spot - the two states are opposites and never show together) while push-to-talk is held and you're not muted. Works even without a microphone, as input feedback. Blinks while your voice is actually going out. Vanilla gives no transmit feedback at all.");
         VoiceSpeakThreshold = Config.Bind("Voice Indicator", "SpeakThreshold", 0.05f,
             new ConfigDescription("Mic loudness above which the icon blinks ('speaking'). Lower if it never blinks, raise if it always blinks.", new AcceptableValueRange<float>(0f, 1f)));
 

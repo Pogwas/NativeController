@@ -5,21 +5,22 @@ using UnityEngine;
 
 namespace NativeController;
 
-// Local "you're transmitting" indicator for Push-to-Talk (vanilla has NO feedback at all --
-// user 2026-06-12: "i couldnt tell"). Clones vanilla's mute-icon widget (ToggleMuteUI) so the
-// visual is pixel-identical, mirrors it to the LEFT side of the HUD canvas (vanilla's mute icon
-// keeps its authored side -- opposite sides = no confusion), shows it while the mic is HOT in
-// PTT mode (the exact transmit condition vanilla uses, PlayerVoiceChat.cs:511-524), and
-// alpha-blinks it while voice is actually going out (clipLoudnessNoTTS -- vanilla zeroes it
-// whenever transmit is off, so it's the honest signal). PTT off / muted / solo (voiceChat is
-// null) -> never shows. The clone lives on the per-scene HUD canvas and is lazily re-created;
-// this component is recreated per scene by Plugin (REPO wipes DontDestroyOnLoad at boot).
+// Local "push-to-talk engaged" indicator (vanilla has NO feedback at all -- user 2026-06-12:
+// "i couldnt tell"). Clones vanilla's mute-icon widget (ToggleMuteUI) so the visual is
+// pixel-identical and keeps it at the SAME authored spot: muted and talking are opposite,
+// mutually-exclusive states, so they share the position (user 2026-06-12 -- replaced the
+// original left-mirror design). Shows while PTT is held and not muted; deliberately does NOT
+// require microphoneEnabled, so the indicator confirms the input path works even on a PC with
+// no recording device (user has none -- that request drove this). Alpha-blinks while voice is
+// actually going out (clipLoudnessNoTTS -- vanilla zeroes it whenever transmit is off, so it's
+// the honest signal; never blinks without a mic). PTT off / muted / solo (voiceChat null) ->
+// never shows. The clone lives on the per-scene HUD canvas and is lazily re-created; this
+// component is recreated per scene by Plugin (REPO wipes DontDestroyOnLoad at boot).
 internal class VoiceIndicator : MonoBehaviour
 {
     // All vanilla state is internal -- guarded cctor per the ChatLog lesson (a renamed field
     // degrades the indicator to hidden + warn-once, never faults the type).
     private static readonly AccessTools.FieldRef<PlayerAvatar, PlayerVoiceChat> VoiceChatRef;
-    private static readonly AccessTools.FieldRef<PlayerVoiceChat, bool> MicEnabledRef;
     private static readonly AccessTools.FieldRef<PlayerVoiceChat, float> ClipLoudnessNoTTSRef;
     private static readonly AccessTools.FieldRef<AudioManager, bool> PushToTalkRef;
     private static readonly AccessTools.FieldRef<DataDirector, bool> ToggleMuteRef;
@@ -31,7 +32,6 @@ internal class VoiceIndicator : MonoBehaviour
         try
         {
             VoiceChatRef = AccessTools.FieldRefAccess<PlayerAvatar, PlayerVoiceChat>("voiceChat");
-            MicEnabledRef = AccessTools.FieldRefAccess<PlayerVoiceChat, bool>("microphoneEnabled");
             ClipLoudnessNoTTSRef = AccessTools.FieldRefAccess<PlayerVoiceChat, float>("clipLoudnessNoTTS");
             PushToTalkRef = AccessTools.FieldRefAccess<AudioManager, bool>("pushToTalk");
             ToggleMuteRef = AccessTools.FieldRefAccess<DataDirector, bool>("toggleMute");
@@ -70,8 +70,9 @@ internal class VoiceIndicator : MonoBehaviour
         {
             PlayerVoiceChat voice = VoiceChatRef(avatar);
             if (voice == null) { Hide(); return; } // solo: no voice chat exists (runtime quirk)
+            // Deliberately NOT gated on microphoneEnabled: the icon means "PTT input engaged",
+            // so it works as feedback even with no recording device (user request 2026-06-12).
             hot = PushToTalkRef(audio)             // PTT mode only (open mic would be always-on)
-                  && MicEnabledRef(voice)          // false with no recording device at all (diagnosed 2026-06-12)
                   && !ToggleMuteRef(data)          // muted: vanilla's own icon owns that story
                   && SemiFunc.InputHold(InputKey.PushToTalk);
             loudness = ClipLoudnessNoTTSRef(voice);
@@ -94,12 +95,13 @@ internal class VoiceIndicator : MonoBehaviour
         if (_icon != null && _icon.activeSelf) _icon.SetActive(false);
     }
 
-    // Clone vanilla's mute widget and mirror it to the LEFT. SemiUI widgets are positioned by
+    // Clone vanilla's mute widget and park it at the SAME authored spot (muted and talking are
+    // mutually exclusive, so they share the position). SemiUI widgets are positioned by
     // transform.localPosition around an authored home (SemiUI.initialPosition, captured in
     // SemiUI.Start) -- NOT by anchors -- and the source is usually in its HIDDEN state at clone
     // time (unmuted -> SemiUI.Hide() disables uiText, deactivates children and offsets the
     // transform). So: clone, kill the logic component, re-activate the visuals, and place the
-    // clone at the x-mirror of the source's authored home (the HUD canvas is center-origin).
+    // clone at the source's authored home (discarding any hide offset baked into the transform).
     private bool TryCreateClone()
     {
         if (_cloneFailedThisScene) return false;
@@ -127,12 +129,12 @@ internal class VoiceIndicator : MonoBehaviour
             foreach (Transform child in _icon.transform) child.gameObject.SetActive(true);
             foreach (TMP_Text text in _icon.GetComponentsInChildren<TMP_Text>(true)) text.enabled = true;
 
-            _icon.transform.localPosition = new Vector3(-home.x, home.y, home.z);
+            _icon.transform.localPosition = home;
 
             _group = _icon.GetComponent<CanvasGroup>();
             if (_group == null) _group = _icon.AddComponent<CanvasGroup>();
             _icon.SetActive(false); // shown by Update when hot
-            Plugin.Log.LogDebug("[VoiceIndicator] Cloned the mute widget (left-mirrored).");
+            Plugin.Log.LogDebug("[VoiceIndicator] Cloned the mute widget (shared spot).");
             return true;
         }
         catch (Exception e)
