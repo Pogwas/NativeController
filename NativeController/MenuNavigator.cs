@@ -773,13 +773,16 @@ internal class MenuNavigator : MonoBehaviour
     }
 }
 
-// While the controller drives the menu and a hover WIDGET (server row / page arrow / save
-// file) is the navigator's selection, force the game's own hover test: TRUE for the selected
-// widget, FALSE for everything else (parks an idle mouse that happens to rest on a row).
-// Vanilla then runs all its native hover machinery — selection box, hover sound, row fade —
-// and its own Confirm-while-hovering click path keeps working for the physical keyboard.
-// Inert whenever the selection is a regular MenuButton (SelectedHoverRect is null) or the
-// mouse is the active input (ControllerActive false).
+// While the controller drives the menu, force the game's own hover test: TRUE only for the
+// navigator's selected hover WIDGET (server row / page arrow / save file), FALSE for
+// everything else — including whatever the idle (now invisible) mouse happens to rest on.
+// Without the global FALSE, a parked mouse kept arming vanilla MenuButton.hoverTimer, whose
+// per-frame OnHovering() re-targeted the selection box and fought the pad's outline
+// (playtest 2026-06-12: "controller not able to outline what im trying to choose"). Regular
+// MenuButtons get their pad highlight from MenuButtonHoverPatch, which doesn't need
+// UIMouseHover to pass. Vanilla's native hover machinery still runs for the forced-TRUE
+// widget — selection box, hover sound, row fade — and the mouse regains everything the
+// moment it moves (ControllerActive flips off).
 [HarmonyPatch(typeof(SemiFunc), nameof(SemiFunc.UIMouseHover))]
 internal static class HoverElementForcePatch
 {
@@ -788,8 +791,7 @@ internal static class HoverElementForcePatch
     {
         if (!MenuNavigator.ControllerActive) return;
         var sel = MenuNavigator.SelectedHoverRect;
-        if (sel == null) return;
-        __result = ReferenceEquals(rectTransform, sel);
+        __result = sel != null && ReferenceEquals(rectTransform, sel);
     }
 }
 
