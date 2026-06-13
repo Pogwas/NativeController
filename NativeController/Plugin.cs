@@ -14,7 +14,7 @@ public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.pogwas.nativecontroller";
     public const string PluginName = "Native Controller";
-    public const string PluginVersion = "0.5.0";
+    public const string PluginVersion = "0.6.0";
 
     internal static Plugin Instance;
     internal static ManualLogSource Log;

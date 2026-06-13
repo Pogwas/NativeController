@@ -13,13 +13,12 @@ Other R.E.P.O. controller mods *emulate* — under the hood they translate your 
 - **Native gamepad binding** — the pad goes straight into the game's input system, not a keyboard/mouse emulation layer.
 - **Right-stick look** — configurable speed, invert, deadzone.
 - **Full menu navigation** — D-pad / left stick moves, A confirms, B backs. Covers the vanilla menus, server browser, saved games and REPOConfig's mod menu.
-- **Emote wheel** — hold D-pad Down; right stick picks, release plays. Auto-clears (configurable); the wheel also has a Mute Mic slot (toggles the same mic mute as keyboard B — multiplayer only).
-- **On-screen chat keyboard** — open chat with Back/View and type with the pad. Goes through vanilla chat: live type-out, multiplayer sync, TTS; right-stick flick up/down recalls sent-message history (like vanilla's Up/Down arrows).
-- **Chat log** — a regular chat box of recent messages (names, newest at bottom), bottom-left; vanilla has none.
-- **Menu text fields on pad** — lobby name, save rename, server search and password screens auto-open the keyboard; vanilla rules apply; hides itself on mouse.
-- **Push-to-talk on pad** — bind any pad button (`[Gamepad] PushToTalkButton`) to hold-to-talk when the game's Push to Talk setting is on; the button keeps its normal function.
-- **Push-to-talk indicator** — with Push to Talk on, the muted-mic icon shows while your mic is cold and clears the moment you hold the talk button: icon = silent, empty = live. Works even without a microphone. Config: `[Voice Indicator]`.
-- **No idle mouse pointer on pad** — the menu mouse pointer hides while the controller is the active input and returns on mouse movement. Config: `[Gamepad] HideMouseCursor`.
+- **Emote wheel + mic mute** — hold D-pad Down; right stick picks, release plays (auto-clears, configurable). A Mute Mic slot toggles the same mute as keyboard B (multiplayer).
+- **On-screen chat keyboard** — open chat with Back/View and type with the pad, through vanilla chat (live type-out, sync, TTS). Right-stick flicks recall sent messages.
+- **Chat log** — a chat box of recent messages (names, newest at bottom), bottom-left; vanilla has none.
+- **Menu text fields on pad** — lobby name, save rename, search and password screens auto-open the keyboard; hides itself on mouse.
+- **Push-to-talk on pad** — bind any pad button to hold-to-talk (`[Gamepad] PushToTalkButton`); a status icon shows while your mic is cold and clears while you talk.
+- **No idle mouse pointer on pad** — the menu pointer (and its hover) yields while the controller is active; back on mouse movement.
 - **Toggle sprint, grab & crouch** — one press holds the action, a second (or vanilla's own stop conditions) ends it.
 - **Button prompts** — GRAB / LET GO / ROTATE / CLIMB hints by the inventory, and the game's key tags show pad buttons (SHOTGUN [X] instead of [E]).
 - **Inventory D-pad arrows** — slots show ← ↑ → instead of 1 2 3 on pad.
@@ -84,6 +83,17 @@ Please open an [Issue](https://github.com/Pogwas/NativeController/issues) and in
 - Steps to reproduce
 
 ## Changelog
+
+### 0.6.0
+
+- **Chat log** — a chat box of recent messages (names, newest at bottom), bottom-left. Config: `[Chat Log]`.
+- **Chat history recall** — right-stick flick up/down in the chat keyboard recalls sent messages (like vanilla's arrows). Config: `[Chat Keyboard] HistoryRecallEnabled`.
+- **Mic mute on the emote wheel** — a Mute Mic slot (left side of the wheel), same mute as keyboard B; emotes fan down the right.
+- **Push-to-talk on pad** — bind any pad button to hold-to-talk, live-rebindable. Config: `[Gamepad] PushToTalkButton`.
+- **Push-to-talk status icon** — the muted-mic icon shows while your mic is cold in PTT mode and clears while you talk. Config: `[Voice Indicator]`.
+- **No idle mouse pointer on pad** — the menu pointer and its hover yield while the controller is active. Config: `[Gamepad] HideMouseCursor`.
+- **One chat size knob** — `[Chat] Scale` sizes both keyboards and the chat log together (replaces the separate scales).
+- **Fixes** — chat keyboard sits clear of the typed message; wheel picks register on fast flicks; tidier keyboard hint row.
 
 ### 0.5.0
 

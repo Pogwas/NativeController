@@ -1,8 +1,8 @@
 ﻿{
   "name": "NativeController",
-  "version_number": "0.5.0",
+  "version_number": "0.6.0",
   "website_url": "https://github.com/Pogwas/NativeController",
-  "description": "Native controller support for R.E.P.O. - binds your gamepad straight into the game's own input (no keyboard/mouse emulation), with menu navigation, button glyphs, aim assist, and an on-screen chat keyboard.",
+  "description": "Native controller support for R.E.P.O. - binds your gamepad straight into the game's own input (no emulation), with menu navigation, button glyphs, aim assist, chat keyboard + chat log, emote wheel with mic mute, and push-to-talk.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2305"
   ]
